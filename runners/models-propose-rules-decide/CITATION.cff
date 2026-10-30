@@ -8,6 +8,8 @@ authors:
     affiliation: MoxyWolf LLC
     orcid: "https://orcid.org/0000-0002-5421-8457"
 version: 1.0.0
+doi: 10.5281/zenodo.23819764
+date-released: 2026-10-30
 license: MIT
 repository-code: "https://github.com/MoxyWolfLLC/zenodo/tree/main/runners/models-propose-rules-decide"
 keywords:

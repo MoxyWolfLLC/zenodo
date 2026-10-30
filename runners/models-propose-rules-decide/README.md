@@ -9,7 +9,7 @@ python3 -I wilson.py     # prints the Section 9 sample sizes
 
 Python 3.9 or later, standard library only. `expected/check_output.txt` and `expected/wilson_output.txt` hold the output these produce; the check output is deterministic, so `python3 -I check.py | grep -v '^wrote' | diff - expected/check_output.txt` should print nothing. Each run rewrites `decision_record_example.json` and `decision_record_example.sssom.tsv`; only their timestamps change.
 
-The paper this accompanies: Cougias D. *Models Propose, Rules Decide: An Auditable Decision Procedure for AI-Assisted Mapping.* Manuscript, 2026. Licensed under the MIT License (see `LICENSE` at the repository root).
+The paper this accompanies: Cougias D. *Models Propose, Rules Decide: An Auditable Decision Procedure for AI-Assisted Mapping.* Manuscript, 2026. Archived on Zenodo: https://doi.org/10.5281/zenodo.23819764. Licensed under the MIT License (see `LICENSE` at the repository root).
 
 ## Files
 
