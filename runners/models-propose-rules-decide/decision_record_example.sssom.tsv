@@ -1,0 +1,8 @@
+# curie_map:
+#   ex: https://example.org/synthetic/
+#   semapv: https://w3id.org/semapv/vocab/
+#   orcid: https://orcid.org/
+# license: https://creativecommons.org/publicdomain/zero/1.0/
+# mapping_set_id: https://example.org/synthetic/mapping-set/r1
+subject_id	predicate_id	object_id	mapping_justification	mapping_tool	mapping_tool_version	mapping_date	comment	other
+ex:S11	ex:informs	ex:C1	semapv:CompositeMatching	reference-runner	r1/engine:4fae8c5590720150	2026-10-30	WRITE auto_accept by card T3; triad prov-B/m1,prov-C/m1,prov-D/m1	decision_id=14|candidate_set=dbe94a45eb0a0951|proposal=19|votes=20/21/22

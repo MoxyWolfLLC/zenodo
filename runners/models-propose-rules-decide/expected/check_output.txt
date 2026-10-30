@@ -1,0 +1,97 @@
+
+[PASS] route_coverage  (examined 45)
+    spec reason codes found in spec text: 18; T5/no_majority deferred to check 3, gated cards to acceptance_gate
+    cards required 24, reasons required 16, special paths 5; decision rows scanned 62
+    unreached: none
+
+[PASS] termination  (examined 104)
+    units 42, live decisions 46; units without exactly one live decision per candidate/unit: none
+    max gap_attempts seen 2 (G_max 2), max hub_attempts seen 2 (H_max 2); rows over bound: 0
+
+[PASS] otherwise_last_and_exhaustive  (examined 244)
+    card sets checked 28 (4 set revisions); not ending in otherwise: none
+    triad enumeration over 6^3 = 216 vote combos: T1 91, T2 13, T2-gated 0, T3 52, T3-gated 0, T4 60, T5-otherwise 0
+    T5 hit with all three votes valid: 0
+
+[PASS] no_single_source_negative  (examined 24)
+    terminal negative rows examined 24; single-source negatives outside an SS- card: none
+    SS-scope: volume 4, audit sample 2 (rate 0.2), audited errors 1, audited error rate 0.50
+    SS-retrieval: volume 2, audit sample 16 non-retrieved (unit, hub entry) pairs, missed links 1, audited error rate 0.062
+
+[PASS] replay_zero_calls  (examined 46)
+    live decisions replayed 46; route/level/reason/card mismatches or replay defects: none
+    call counter deltas during replay: {'model': 0, 'reviewer': 0, 'curator': 0, 'retriever': 0}; outputs asked 0; outputs reused 223
+
+[PASS] policy_eval_reuse  (examined 211)
+    (a) c_min 0.7 -> 0.5, set r2: decisions changed 3, model calls 9, reviewer calls 1, curator calls 1
+        curator:asked 1, curator:reused 4, extraction:reused 45, proposal:reused 40, retrieval:reused 38, ruling:asked 1, ruling:reused 12, triad:asked 9, triad:reused 81
+    (b) triad question tq1 -> tq2, set r3: decisions changed 21, model calls 81, reviewer calls 1, curator calls 1
+        curator:asked 1, curator:reused 4, extraction:reused 45, proposal:reused 40, retrieval:reused 38, ruling:asked 1, ruling:reused 10, triad:asked 81
+    (a) expected newly asked triad votes = 3 x 3 candidates moved E3 -> triad = 9
+    (b) expected re-asked triad votes = 3 x 27 candidates reaching the triad = 81
+
+[PASS] activation  (examined 46)
+    live decisions before 46, after 46; all now under r2: True; all prior live rows marked superseded: True
+    activation record: who=approver:d.c, report_hash=55b15248e17820e4
+    during activation: model/retriever outputs asked 0, review/hub items re-queued 2 (evaluation already paid for the votes), reused 229
+    decisions that changed vs r1: 3
+
+[PASS] undo_publication  (examined 46)
+    re-activated r1; during re-activation: model/retriever outputs asked 0, review/hub items re-queued 2
+    public reads 46 vs fresh replay of r1 46; differences: none; replay call deltas {'model': 0, 'reviewer': 0, 'curator': 0, 'retriever': 0}
+
+[PASS] undo_recovery  (examined 556)
+    bad write corrupted level on 5 decisions; footprint rows 5; rows outside footprint changed by the bad write 0
+    recovery restored 5 footprint rows; footprint rows equal pre-write values: True; rows outside footprint changed (of 556 snapshotted): 0
+
+[PASS] challenge  (examined 3)
+    challenged S33/C3 (applied in setup); rows in ledger: #47 WRITE auto_accept augments -> #61 REVIEW challenge None -> #62 RECORD no_match_ruled None
+    ruling stored: no_match by reviewer:r.lee (confirmed), reason code 'assessor_dispute by assessor:k.ng'
+    live after two activations and an undo: no_match_ruled (stored ruling reused, evidence shown unchanged)
+
+[PASS] per_level_reporting  (examined 29)
+    set r1, publication batch 3. Denominators: one row per (unit, candidate); duplicates impossible (one gate outcome per pair per batch)
+    auto_accept rows by the gate (incl. later challenged): 17; voted no match (live): 6; human accepts (live): 6
+    SYNTHETIC precision of the auto-accept gate vs canned gold rulings, per level:
+        level     auto human correct precision wilson95_lb
+        informs      5     2       4     0.800       0.435
+        supports     6     2       5     0.833       0.498
+        augments     4     2       3     0.750       0.356
+        replaces     2     0       2     1.000       0.425
+    no pooled figure is reported alone; gold missing for: none
+
+[PASS] acceptance_gate  (examined 225)
+    set r4 closes the gates for no match and augments; enumeration: T2-gated 13, T3-gated 13, T2 0
+    live voted no matches sent to review 6, live augments writes sent to review 3; misrouted: none
+    model/retriever outputs asked 0; model/retriever outputs asked 0, review/hub items re-queued 12
+
+[PASS] engine_pin  (examined 3)
+    engine hash pinned in every set: ['4fae8c5590720150']
+    replay with a silently edited plurality(): refused: engine changed under set r1 without a new set revision
+    replay after restoring the helper: ok
+
+[PASS] cost_reporting  (examined 46)
+    first pass under r1: model calls 166, retriever calls 38, reviewer calls 15, curator calls 5; 3.95 model calls per unit, 3.61 per live decision (42 units, 46 live decisions)
+    (a) loosen confidence: model calls 9 (0.20 per live decision), reviewer 1, curator 1
+    (b) reword triad question: model calls 81 (1.76 per live decision), reviewer 1, curator 1
+    (c) close two gates: model calls 0 (0.00 per live decision), reviewer 11, curator 1
+
+
+--------------------------------------------------------------
+check                              result examined
+--------------------------------------------------------------
+route_coverage                     PASS         45
+termination                        PASS        104
+otherwise_last_and_exhaustive      PASS        244
+no_single_source_negative          PASS         24
+replay_zero_calls                  PASS         46
+policy_eval_reuse                  PASS        211
+activation                         PASS         46
+undo_publication                   PASS         46
+undo_recovery                      PASS        556
+challenge                          PASS          3
+per_level_reporting                PASS         29
+acceptance_gate                    PASS        225
+engine_pin                         PASS          3
+cost_reporting                     PASS         46
+--------------------------------------------------------------

@@ -1,0 +1,3 @@
+observed about 1.00: 25 of 25 -> bound 0.9023; 24 of 25 -> 0.8391 (bar 0.9)
+observed about 0.95: 95 of 100 -> bound 0.9008; 94 of 100 -> 0.8882 (bar 0.9)
+observed about 0.93: 231 of 248 -> bound 0.9001; 230 of 248 -> 0.8955 (bar 0.9)

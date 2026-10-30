@@ -1,0 +1,231 @@
+{
+ "unit": {
+  "id": 11,
+  "unit_id": "S11",
+  "release": 1,
+  "type": "requirement",
+  "text": "S11: the owner shall maintain k1 records each cycle.",
+  "keywords": [
+   "k1"
+  ]
+ },
+ "release": 1,
+ "candidate_set": {
+  "id": 4,
+  "unit_id": "S11",
+  "release": 1,
+  "retriever_version": "kw-v1",
+  "index_version": "ix-1",
+  "hub_revision": 1,
+  "hash": "dbe94a45eb0a0951",
+  "candidates": [
+   "C1"
+  ],
+  "created_at": 1793392351.7793796
+ },
+ "proposal": {
+  "id": 19,
+  "role": "propose",
+  "model_id": "prov-A/m1",
+  "question_version": "pq1",
+  "prompt_hash": "7c41426ab707c15e",
+  "evidence_hash": "08ea4611f262ead0",
+  "payload": {
+   "answer": "informs",
+   "confidence": 0.9,
+   "quotes": [
+    "maintain"
+   ]
+  },
+  "created_at": 1793392351.7794256
+ },
+ "votes": [
+  {
+   "id": 20,
+   "role": "triad/prov-B",
+   "model_id": "prov-B/m1",
+   "question_version": "tq1",
+   "prompt_hash": "c0df85cbfc033b5f",
+   "evidence_hash": "6e547acc9cf34ac5",
+   "payload": {
+    "answer": "informs"
+   },
+   "created_at": 1793392351.7794743
+  },
+  {
+   "id": 21,
+   "role": "triad/prov-C",
+   "model_id": "prov-C/m1",
+   "question_version": "tq1",
+   "prompt_hash": "65229c0bf4576e66",
+   "evidence_hash": "6e547acc9cf34ac5",
+   "payload": {
+    "answer": "informs"
+   },
+   "created_at": 1793392351.7795124
+  },
+  {
+   "id": 22,
+   "role": "triad/prov-D",
+   "model_id": "prov-D/m1",
+   "question_version": "tq1",
+   "prompt_hash": "04784043275b60f2",
+   "evidence_hash": "6e547acc9cf34ac5",
+   "payload": {
+    "answer": "informs"
+   },
+   "created_at": 1793392351.779546
+  }
+ ],
+ "cards_evaluated_in_order": [
+  {
+   "set": "intake",
+   "card": "I1",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "intake",
+   "card": "I3",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "intake",
+   "card": "I4",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "intake",
+   "card": "SS-scope",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "intake",
+   "card": "I5-otherwise",
+   "revision": 1,
+   "matched": true
+  },
+  {
+   "set": "retrieval",
+   "card": "SS-retrieval",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "retrieval",
+   "card": "R2-otherwise",
+   "revision": 1,
+   "matched": true
+  },
+  {
+   "set": "evidence",
+   "card": "E1",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "evidence",
+   "card": "E2",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "evidence",
+   "card": "E3",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "evidence",
+   "card": "E4-otherwise",
+   "revision": 1,
+   "matched": true
+  },
+  {
+   "set": "triad",
+   "card": "T1",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "triad",
+   "card": "T2",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "triad",
+   "card": "T2-gated",
+   "revision": 1,
+   "matched": false
+  },
+  {
+   "set": "triad",
+   "card": "T3",
+   "revision": 1,
+   "matched": true
+  }
+ ],
+ "decision": {
+  "id": 14,
+  "unit_id": "S11",
+  "candidate": "C1",
+  "route": "WRITE",
+  "reason": "auto_accept",
+  "level": "informs",
+  "card_id": "T3",
+  "set_revision": "r1",
+  "batch": 1,
+  "superseded_by": 76,
+  "created_at": 1793392351.7795942,
+  "superseded_at": 1793392351.8615339
+ },
+ "replay": {
+  "set_revision": "r1",
+  "route": "WRITE",
+  "reason": "auto_accept",
+  "level": "informs",
+  "calls": {
+   "model": 0,
+   "reviewer": 0,
+   "curator": 0,
+   "retriever": 0
+  },
+  "calls_total": 0
+ },
+ "re_evaluation": {
+  "a": {
+   "set_revision": "r2",
+   "outcome": [
+    "WRITE",
+    "auto_accept",
+    "informs"
+   ],
+   "this_unit": {
+    "extraction:reused": 1,
+    "retrieval:reused": 1,
+    "proposal:reused": 1,
+    "triad:reused": 3
+   },
+   "model_calls_this_unit": 0
+  },
+  "b": {
+   "set_revision": "r3",
+   "outcome": [
+    "RECORD",
+    "no_match_voted",
+    null
+   ],
+   "this_unit": {
+    "extraction:reused": 1,
+    "retrieval:reused": 1,
+    "proposal:reused": 1,
+    "triad:asked": 3
+   },
+   "model_calls_this_unit": 3
+  }
+ }
+}
