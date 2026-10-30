@@ -1,18 +1,11 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-title: "Reference runner for \"Models Propose, Rules Decide: An Auditable Decision Procedure for AI-Assisted Mapping\""
+message: "Each artifact in this repository has its own Zenodo record; cite the artifact's DOI, listed in README.md and in its folder's CITATION.cff."
+title: "MoxyWolf research artifacts"
 type: software
 authors:
   - family-names: Cougias
     given-names: Dorian
     affiliation: MoxyWolf LLC
     orcid: "https://orcid.org/0000-0002-5421-8457"
-version: 1.0.0
 license: MIT
 repository-code: "https://github.com/MoxyWolfLLC/zenodo"
-keywords:
-  - crosswalk
-  - auditability
-  - rule cards
-  - LLM adjudication
-  - replay
