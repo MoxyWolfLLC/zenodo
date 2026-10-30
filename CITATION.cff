@@ -6,6 +6,7 @@ authors:
   - family-names: Cougias
     given-names: Dorian
     affiliation: MoxyWolf LLC
+    orcid: "https://orcid.org/0000-0002-5421-8457"
 version: 1.0.0
 license: MIT
 repository-code: "https://github.com/MoxyWolfLLC/zenodo"
