@@ -15,9 +15,15 @@ def valid(v):
     return isinstance(v, dict) and not v.get("refused") and "answer" in v and (v["answer"] is None or v["answer"] in LEVELS)
 
 
-def plurality(votes):
-    n = Counter(v["answer"] for v in votes if valid(v) and v["answer"] is not None)
-    top = [lvl for lvl, c in n.items() if c >= 2]
+def quorum(n):
+    """Strict majority of the panel size n: 2 of 3, 3 of 4, 3 of 5 (Section 4)."""
+    return n // 2 + 1
+
+
+def plurality(votes, n):
+    """The one level a strict majority of n agrees on, else None. A tie is never broken."""
+    c = Counter(v["answer"] for v in votes if valid(v) and v["answer"] is not None)
+    top = [lvl for lvl, k in c.items() if k >= quorum(n)]
     return top[0] if len(top) == 1 else None
 
 
@@ -62,14 +68,18 @@ def nulls(votes):
     return sum(1 for v in votes if valid(v) and v["answer"] is None)
 
 
+def nonnulls(votes):
+    return sum(1 for v in votes if valid(v) and v["answer"] is not None)
+
+
 TRIAD = [  # p["closed"]: outcomes whose acceptance gate (Section 9) is closed; they go to review instead
     ("T1", 1, lambda c, p: sum(map(valid, c["votes"])) < c["n"], ("REVIEW", "incomplete_triad")),
-    ("T2", 1, lambda c, p: nulls(c["votes"]) >= 2 and "no_match" not in p["closed"], ("RECORD", "no_match_voted")),
-    ("T2-gated", 1, lambda c, p: nulls(c["votes"]) >= 2, ("REVIEW", "nomatch_gate_closed")),
-    ("T3", 1, lambda c, p: plurality(c["votes"]) not in (None, *p["closed"]), ("WRITE", "auto_accept")),
-    ("T3-gated", 1, lambda c, p: plurality(c["votes"]) is not None, ("REVIEW", "level_gate_closed")),
-    ("T4", 1, lambda c, p: sum(1 for v in c["votes"] if valid(v) and v["answer"] is not None) >= 2, ("REVIEW", "level_split")),
-    ("T5-otherwise", 1, OTHERWISE, ("REVIEW", "no_majority")),
+    ("T2", 1, lambda c, p: nulls(c["votes"]) >= quorum(c["n"]) and "no_match" not in p["closed"], ("RECORD", "no_match_voted")),
+    ("T2-gated", 1, lambda c, p: nulls(c["votes"]) >= quorum(c["n"]), ("REVIEW", "nomatch_gate_closed")),
+    ("T3", 1, lambda c, p: plurality(c["votes"], c["n"]) not in (None, *p["closed"]), ("WRITE", "auto_accept")),
+    ("T3-gated", 1, lambda c, p: plurality(c["votes"], c["n"]) is not None, ("REVIEW", "level_gate_closed")),
+    ("T4", 1, lambda c, p: nonnulls(c["votes"]) >= quorum(c["n"]), ("REVIEW", "level_split")),
+    ("T5-otherwise", 1, OTHERWISE, ("REVIEW", "no_majority")),  # reachable only on an even panel: a tie
 ]
 RULING = [  # reviewer rulings; a level comes only from the ruling itself
     ("H1", 1, lambda c, p: (c["ruling"] or {}).get("ruling") == "accept", ("RECORD", "human_accept")),
@@ -79,7 +89,7 @@ RULING = [  # reviewer rulings; a level comes only from the ruling itself
 ]
 
 BASE = dict(G_max=2, H_max=2, c_min=0.7, a_scope=0.2, k=3, out_of_scope_types=["heading"], closed=[])
-ENGINE_PARTS = ("valid", "plurality", "nulls", "quotes_ok", "sampled")
+ENGINE_PARTS = ("valid", "quorum", "plurality", "nulls", "nonnulls", "quotes_ok", "sampled")
 
 
 def engine_hash():

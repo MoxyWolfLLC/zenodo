@@ -263,11 +263,18 @@ class Runner:
         if cards.engine_hash() != S["engine"]:  # P9: the engine is part of the set revision
             raise RuntimeError(f"engine changed under set {S['rev']} without a new set revision")
         u, trace, gap, xs = self.unit(uid), [], 0, []
-        while True:  # I0..I5; bounded by I3/I4 (G_max)
+        # I1 reads metadata only, so it runs before any model is called (Appendix C.1: START -> I1 -> EM).
+        cid, rev, cond, (route, reason) = S["cards"]["intake"][0]
+        assert cid == "I1"
+        if cond({"unit": u}, P):
+            trace.append(["intake", cid, rev, True])
+            return [self.settle(mode, S, uid, [self.entry(None, route, reason, None, cid, [{"kind": "rule", "who": "metadata"}],
+                                                          trace, {"gap": 0, "hub": 0})])]
+        while True:  # I3..I5; bounded by I3/I4 (G_max)
             ext, xid = self.ask(mode, "extraction", "extract", S["proposer"], qv["extract"],
                                 {"unit": uid, "release": u["release"], "attempt": gap}, {"unit": uid, "attempt": gap})
             xs.append({"kind": "model", "who": prov(S["proposer"]), "out": xid})
-            cid, (route, reason) = self.pick(S, "intake", {"unit": u, "ext": ext, "gap": gap}, trace)
+            cid, (route, reason) = self.pick(S, "intake", {"unit": u, "ext": ext, "gap": gap}, trace)  # I1 can't match here
             if route != "RETRY":
                 break
             gap += 1
@@ -310,7 +317,7 @@ class Runner:
                         votes.append(v)
                         basis.append({"kind": "model", "who": prov(m), "out": vid})
                     cid, (route, reason) = self.pick(S, "triad", {"votes": votes, "n": len(S["triad"])}, t)
-                    level = cards.plurality(votes) if cid == "T3" else None
+                    level = cards.plurality(votes, len(S["triad"])) if cid == "T3" else None
                 chains.append(self.settle(mode, S, uid, [self.entry(c, route, reason, level, cid, basis, t,
                                                                     {"gap": gap, "hub": hub_att})]))
             if not reopen:

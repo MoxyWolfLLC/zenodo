@@ -8,10 +8,11 @@
     units 42, live decisions 46; units without exactly one live decision per candidate/unit: none
     max gap_attempts seen 2 (G_max 2), max hub_attempts seen 2 (H_max 2); rows over bound: 0
 
-[PASS] otherwise_last_and_exhaustive  (examined 244)
+[PASS] otherwise_last_and_exhaustive  (examined 247)
     card sets checked 28 (4 set revisions); not ending in otherwise: none
     triad enumeration over 6^3 = 216 vote combos: T1 91, T2 13, T2-gated 0, T3 52, T3-gated 0, T4 60, T5-otherwise 0
     T5 hit with all three votes valid: 0
+    M = 4 ties: null vs level -> T5-otherwise, two levels -> T4; 3 of 4 on informs -> T3
 
 [PASS] no_single_source_negative  (examined 24)
     terminal negative rows examined 24; single-source negatives outside an SS- card: none
@@ -20,29 +21,29 @@
 
 [PASS] replay_zero_calls  (examined 46)
     live decisions replayed 46; route/level/reason/card mismatches or replay defects: none
-    call counter deltas during replay: {'model': 0, 'reviewer': 0, 'curator': 0, 'retriever': 0}; outputs asked 0; outputs reused 223
+    call counter deltas during replay: {'model': 0, 'reviewer': 0, 'curator': 0, 'retriever': 0}; outputs asked 0; outputs reused 221
 
 [PASS] policy_eval_reuse  (examined 211)
     (a) c_min 0.7 -> 0.5, set r2: decisions changed 3, model calls 9, reviewer calls 1, curator calls 1
-        curator:asked 1, curator:reused 4, extraction:reused 45, proposal:reused 40, retrieval:reused 38, ruling:asked 1, ruling:reused 12, triad:asked 9, triad:reused 81
+        curator:asked 1, curator:reused 4, extraction:reused 43, proposal:reused 40, retrieval:reused 38, ruling:asked 1, ruling:reused 12, triad:asked 9, triad:reused 81
     (b) triad question tq1 -> tq2, set r3: decisions changed 21, model calls 81, reviewer calls 1, curator calls 1
-        curator:asked 1, curator:reused 4, extraction:reused 45, proposal:reused 40, retrieval:reused 38, ruling:asked 1, ruling:reused 10, triad:asked 81
+        curator:asked 1, curator:reused 4, extraction:reused 43, proposal:reused 40, retrieval:reused 38, ruling:asked 1, ruling:reused 10, triad:asked 81
     (a) expected newly asked triad votes = 3 x 3 candidates moved E3 -> triad = 9
     (b) expected re-asked triad votes = 3 x 27 candidates reaching the triad = 81
 
 [PASS] activation  (examined 46)
     live decisions before 46, after 46; all now under r2: True; all prior live rows marked superseded: True
-    activation record: who=approver:d.c, report_hash=55b15248e17820e4
-    during activation: model/retriever outputs asked 0, review/hub items re-queued 2 (evaluation already paid for the votes), reused 229
+    activation record: who=approver:d.c, report_hash=315a96c5731c7a9e
+    during activation: model/retriever outputs asked 0, review/hub items re-queued 2 (evaluation already paid for the votes), reused 227
     decisions that changed vs r1: 3
 
 [PASS] undo_publication  (examined 46)
     re-activated r1; during re-activation: model/retriever outputs asked 0, review/hub items re-queued 2
     public reads 46 vs fresh replay of r1 46; differences: none; replay call deltas {'model': 0, 'reviewer': 0, 'curator': 0, 'retriever': 0}
 
-[PASS] undo_recovery  (examined 556)
+[PASS] undo_recovery  (examined 554)
     bad write corrupted level on 5 decisions; footprint rows 5; rows outside footprint changed by the bad write 0
-    recovery restored 5 footprint rows; footprint rows equal pre-write values: True; rows outside footprint changed (of 556 snapshotted): 0
+    recovery restored 5 footprint rows; footprint rows equal pre-write values: True; rows outside footprint changed (of 554 snapshotted): 0
 
 [PASS] challenge  (examined 3)
     challenged S33/C3 (applied in setup); rows in ledger: #47 WRITE auto_accept augments -> #61 REVIEW challenge None -> #62 RECORD no_match_ruled None
@@ -66,29 +67,30 @@
     model/retriever outputs asked 0; model/retriever outputs asked 0, review/hub items re-queued 12
 
 [PASS] engine_pin  (examined 3)
-    engine hash pinned in every set: ['4fae8c5590720150']
+    engine hash pinned in every set: ['54dae60c336a1789']
     replay with a silently edited plurality(): refused: engine changed under set r1 without a new set revision
     replay after restoring the helper: ok
 
 [PASS] cost_reporting  (examined 46)
-    first pass under r1: model calls 166, retriever calls 38, reviewer calls 15, curator calls 5; 3.95 model calls per unit, 3.61 per live decision (42 units, 46 live decisions)
+    first pass under r1: model calls 164, retriever calls 38, reviewer calls 15, curator calls 5; 3.90 model calls per unit, 3.57 per live decision (42 units, 46 live decisions)
     (a) loosen confidence: model calls 9 (0.20 per live decision), reviewer 1, curator 1
     (b) reword triad question: model calls 81 (1.76 per live decision), reviewer 1, curator 1
     (c) close two gates: model calls 0 (0.00 per live decision), reviewer 11, curator 1
 
+wrote decision_record_example.json (S11/C1, replay calls 0, re-eval (a) calls 0, (b) calls 3)
 
 --------------------------------------------------------------
 check                              result examined
 --------------------------------------------------------------
 route_coverage                     PASS         45
 termination                        PASS        104
-otherwise_last_and_exhaustive      PASS        244
+otherwise_last_and_exhaustive      PASS        247
 no_single_source_negative          PASS         24
 replay_zero_calls                  PASS         46
 policy_eval_reuse                  PASS        211
 activation                         PASS         46
 undo_publication                   PASS         46
-undo_recovery                      PASS        556
+undo_recovery                      PASS        554
 challenge                          PASS          3
 per_level_reporting                PASS         29
 acceptance_gate                    PASS        225

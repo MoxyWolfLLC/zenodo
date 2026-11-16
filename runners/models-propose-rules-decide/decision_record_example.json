@@ -21,10 +21,10 @@
   "candidates": [
    "C1"
   ],
-  "created_at": 1793392351.7793796
+  "created_at": 1794873323.1965735
  },
  "proposal": {
-  "id": 19,
+  "id": 17,
   "role": "propose",
   "model_id": "prov-A/m1",
   "question_version": "pq1",
@@ -37,11 +37,11 @@
     "maintain"
    ]
   },
-  "created_at": 1793392351.7794256
+  "created_at": 1794873323.1966193
  },
  "votes": [
   {
-   "id": 20,
+   "id": 18,
    "role": "triad/prov-B",
    "model_id": "prov-B/m1",
    "question_version": "tq1",
@@ -50,10 +50,10 @@
    "payload": {
     "answer": "informs"
    },
-   "created_at": 1793392351.7794743
+   "created_at": 1794873323.1966634
   },
   {
-   "id": 21,
+   "id": 19,
    "role": "triad/prov-C",
    "model_id": "prov-C/m1",
    "question_version": "tq1",
@@ -62,10 +62,10 @@
    "payload": {
     "answer": "informs"
    },
-   "created_at": 1793392351.7795124
+   "created_at": 1794873323.1966996
   },
   {
-   "id": 22,
+   "id": 20,
    "role": "triad/prov-D",
    "model_id": "prov-D/m1",
    "question_version": "tq1",
@@ -74,7 +74,7 @@
    "payload": {
     "answer": "informs"
    },
-   "created_at": 1793392351.779546
+   "created_at": 1794873323.1967344
   }
  ],
  "cards_evaluated_in_order": [
@@ -180,8 +180,8 @@
   "set_revision": "r1",
   "batch": 1,
   "superseded_by": 76,
-  "created_at": 1793392351.7795942,
-  "superseded_at": 1793392351.8615339
+  "created_at": 1794873323.19678,
+  "superseded_at": 1794873323.3207831
  },
  "replay": {
   "set_revision": "r1",

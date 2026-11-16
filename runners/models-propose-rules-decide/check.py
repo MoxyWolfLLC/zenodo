@@ -130,7 +130,15 @@ def otherwise_last_and_exhaustive(p):
     p(f"triad enumeration over 6^3 = {sum(land.values())} vote combos: " +
       ", ".join(f"{k} {land[k]}" for k in ("T1", "T2", "T2-gated", "T3", "T3-gated", "T4", "T5-otherwise")))
     p(f"T5 hit with all three votes valid: {t5_valid}")
-    return not bad and sum(land.values()) == 216 and t5_valid == 0, n + 216
+    # M = 4 (Section 4): a 2-2 null-vs-level tie has no strict majority anywhere and lands on T5; a 2-2 two-level
+    # tie is a link majority with no level majority, so it is T4. Both go to review; neither breaks the tie.
+    nm, inf, sup = {"answer": None}, {"answer": "informs"}, {"answer": "supports"}
+    ties = {"null vs level": [nm, nm, inf, inf], "two levels": [inf, inf, sup, sup]}
+    tie_cards = {k: R.pick(cards.SETS["r1"], "triad", {"votes": v, "n": 4}, [])[0] for k, v in ties.items()}
+    maj4 = R.pick(cards.SETS["r1"], "triad", {"votes": [inf, inf, inf, sup], "n": 4}, [])[0]
+    p(f"M = 4 ties: " + ", ".join(f"{k} -> {c}" for k, c in tie_cards.items()) + f"; 3 of 4 on informs -> {maj4}")
+    ties_ok = tie_cards["null vs level"] == "T5-otherwise" and tie_cards["two levels"] == "T4" and maj4 == "T3"
+    return not bad and sum(land.values()) == 216 and t5_valid == 0 and ties_ok, n + 216 + 3
 
 
 def no_single_source_negative(p):
@@ -349,7 +357,7 @@ def engine_pin(p):
     uid = "S11"
     orig = cards.plurality
     ok_before = R.run_unit(uid, cards.SETS["r1"], "replay") is not None
-    cards.plurality = lambda votes: next((v["answer"] for v in votes if cards.valid(v) and v["answer"]), None)
+    cards.plurality = lambda votes, n: next((v["answer"] for v in votes if cards.valid(v) and v["answer"]), None)
     try:
         R.run_unit(uid, cards.SETS["r1"], "replay")
         refused = False

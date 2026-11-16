@@ -4,12 +4,7 @@ A small, stdlib-only demonstration of the decision procedure in `method-spec-r2.
 
 ```
 python3 -I check.py      # prints a PASS/FAIL table, exits 1 on any FAIL
-python3 -I wilson.py     # prints the Section 9 sample sizes
 ```
-
-Python 3.9 or later, standard library only. `expected/check_output.txt` and `expected/wilson_output.txt` hold the output these produce; the check output is deterministic, so `python3 -I check.py | grep -v '^wrote' | diff - expected/check_output.txt` should print nothing. Each run rewrites `decision_record_example.json` and `decision_record_example.sssom.tsv`; only their timestamps change.
-
-The paper this accompanies: Cougias D. *Models Propose, Rules Decide: An Auditable Decision Procedure for AI-Assisted Mapping.* Manuscript, 2026. Archived on Zenodo: https://doi.org/10.5281/zenodo.23819764. Licensed under the MIT License (see `LICENSE` at the repository root).
 
 ## Files
 
@@ -64,9 +59,11 @@ Statements S01 to S42 map to capabilities C1 to C8 (C9 to C11 get added by the c
 20. **Change (b) has no canned `tq2` votes.** Every re-asked vote gets the stub's default "no match", so 21 decisions would change. That's the point of the count: rewording the question is a new question, and nothing carries over.
 
 21. **Acceptance gates are set parameters.** A set's `closed` list names the outcomes whose gate is closed (`no_match` or a level). T2-gated and T3-gated send those to review. Closing or opening a gate is a new set revision and re-asks no model output (check 12).
-22. **Engine pin.** `cards.engine_hash()` hashes the source of the shared helpers (`valid`, `plurality`, `nulls`, `quotes_ok`, `sampled`). Every set stores it at creation, and `run_unit` refuses to run a set whose hash no longer matches (check 13).
+22. **Engine pin.** `cards.engine_hash()` hashes the source of the shared helpers (`valid`, `quorum`, `plurality`, `nulls`, `nonnulls`, `quotes_ok`, `sampled`). Every set stores it at creation, and `run_unit` refuses to run a set whose hash no longer matches (check 13).
 23. **SSSOM export.** The level is the predicate in a synthetic `ex:` namespace; `mapping_justification` is `semapv:CompositeMatching` because the link came from a proposal, a vote and a card, not one matcher. The set revision and engine hash go in `mapping_tool_version`; the stored output ids go in `other`.
 24. **Cost (check 14).** Counts are calls to the stubs, not dollars. They show the shape of the cost, not its size.
+25. **I1 before extraction (1.1.0).** I1 reads metadata only, so `run_unit` evaluates it before any model call; a metadata-excluded unit costs zero extractions. Version 1.0.0 extracted first, which changed no route and cost two extraction calls on the fixtures (166 model calls, now 164).
+26. **Quorum from the panel size (1.1.0).** `cards.quorum(n)` is a strict majority, `n // 2 + 1`. T2 and T2-gated read nulls against it, T3 and T3-gated read `plurality(votes, n)` against it, and T4 reads non-null votes against it. With three votes T5 is still unreachable (check 3 enumerates all 216 combinations). Check 3 also runs M = 4: a 2-2 null-versus-level tie lands on T5, a 2-2 two-level tie is T4 (a link majority with no level majority), and 3 of 4 on one level is T3. A tie is never broken.
 
 ## Spec observations (no blocking conflicts found)
 
