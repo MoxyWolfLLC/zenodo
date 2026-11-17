@@ -1,22 +1,25 @@
 {
  "anchoring": {
-  "agree_assisted": 0.7667,
-  "agree_blind": 0.7,
-  "blind_wins_among_discordant": 0,
-  "difference": -0.0667,
-  "discordant": 2,
+  "agree_assisted": 0.8333,
+  "agree_blind": 0.8,
+  "blind_wins_among_discordant": 2,
+  "difference": -0.0333,
+  "discordant": 5,
   "pairs": 30,
+  "pairs_drawn": 30,
+  "pairs_resolved": 30,
+  "pairs_unresolved": 0,
   "seed": "ad57257d431704cb8adac1108f468e8b3730ba2dd2ae770083790c1327062d45",
   "wilson_95": [
-   0.0,
-   0.6576
+   0.1176,
+   0.7693
   ]
  },
  "c_min": 0.7,
  "config_sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359",
  "council_agreement": {
   "double_ruled_n": 254,
-  "krippendorff_alpha": 0.923703
+  "krippendorff_alpha": 0.924744
  },
  "coverage": {
   "definition": "share of the split's units with at least one proposal the council ruled a true link (a level)",
@@ -26,18 +29,22 @@
  },
  "gold_packets": 1272,
  "missed_links": {
-  "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson)",
+  "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson; unresolved rulings are missing observations: left out of both strata, with the draw weight scaled to the resolved draws)",
   "draw_n": 800,
-  "estimate": 0.554731,
-  "non_retrieved_draw_true_links": 18,
+  "draw_resolved": 796,
+  "draw_unresolved": 4,
+  "estimate": 0.557361,
+  "non_retrieved_draw_true_links": 19,
   "non_retrieved_weight": 19.6,
-  "retrieved_true_links": 294,
+  "non_retrieved_weight_applied": 19.698492,
+  "retrieved_true_links": 308,
+  "retrieved_unresolved": 13,
   "retrieved_voted_no_relationship_true_links": 6
  },
  "predictions": {
   "pairs": 1272,
-  "unresolved_gold": 32,
-  "with_label": 1240,
+  "unresolved_gold": 13,
+  "with_label": 1259,
   "with_prediction": 303
  },
  "revision": "r2",
@@ -52,13 +59,13 @@
    "wilson_lower": 0.0
   },
   {
-   "correct": 91,
+   "correct": 98,
    "families_with_multiple_outcomes": 26,
    "gate_decision": "closed",
    "gate_open": false,
    "level": "intersects_with",
-   "n": 143,
-   "wilson_lower": 0.568232
+   "n": 150,
+   "wilson_lower": 0.587212
   },
   {
    "correct": 0,
@@ -66,7 +73,7 @@
    "gate_decision": "closed",
    "gate_open": false,
    "level": "equal",
-   "n": 71,
+   "n": 72,
    "wilson_lower": 0.0
   },
   {
@@ -88,8 +95,8 @@
    "wilson_lower": 0.83605
   }
  ],
- "scored": "2026-11-17T21:57:54Z",
- "sha256": "17d317518c3449091e668f6344c36d53a444056e5f9c2dbdd5a0c5ac95219740",
+ "scored": "2026-11-17T22:16:09Z",
+ "sha256": "91760440b76f885078b172655b13f041a4e8f706fb35b4a11d6ff722ac607b0a",
  "split": "evaluation",
  "ss_audit": {
   "SS-retrieval": {

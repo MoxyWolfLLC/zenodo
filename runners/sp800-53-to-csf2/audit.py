@@ -62,13 +62,13 @@ class Audit:
             with self.lock:
                 stored = self.db.execute("SELECT level, reason FROM council_rulings WHERE packet_id=? AND voice=? AND session=?",
                                          (pid, m, "audit")).fetchone()
-            if stored and stored["level"] != "invalid":
+            if stored and (stored["level"] != "invalid" or (stored["reason"] or "").endswith("#final")):
                 with self.lock:
-                    self.tally["reused"] += 1
+                    self.tally["reused"] += 1   # a ruling, or an invalid already asked twice
                 votes.append({"model": m, "ruling": stored["level"]})
                 continue
             ruling = "invalid"
-            for _ in range(1 if stored else 2):   # a reply that is not a ruling is asked again once; a stored invalid was the first try
+            for attempt in range(1 if stored else 2):   # a reply that is not a ruling is asked again once; a stored invalid was the first try
                 with self.lock:
                     self.tally["asked"] += 1
                 prompt = providers.render("audit", rubric=packet["rubric"], unit_id=row["unit_id"], unit_text=row["statement"],
@@ -78,10 +78,12 @@ class Audit:
                                         packet_sha256=pid, packet_class=f"ss_audit:{card}", split=split, session="audit")
                 ruling = out.get("ruling") if isinstance(out, dict) else None
                 ruling = ruling if ruling in ("correct", "error") else "invalid"
+                reason = str((out.get("reason") if isinstance(out, dict) else None) or "")[:290]
+                if ruling == "invalid" and attempt + (1 if stored else 0) >= 1:
+                    reason += "#final"   # asked twice: a rerun reuses the unresolved vote
                 with self.lock, self.db:
                     self.db.execute("INSERT OR REPLACE INTO council_rulings (packet_id, voice, packet_class, split, blind, level, reason, session, created) "
-                                    "VALUES (?,?,?,?,?,?,?,?,?)", (pid, m, f"ss_audit:{card}", split, 1, ruling,
-                                                                  str((out.get("reason") if isinstance(out, dict) else None) or "")[:300], "audit", now()))
+                                    "VALUES (?,?,?,?,?,?,?,?,?)", (pid, m, f"ss_audit:{card}", split, 1, ruling, reason, "audit", now()))
                 if ruling != "invalid":
                     break
             votes.append({"model": m, "ruling": ruling})

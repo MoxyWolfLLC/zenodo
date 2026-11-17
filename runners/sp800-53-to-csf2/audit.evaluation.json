@@ -1,5 +1,5 @@
 {
- "audited": "2026-11-17T21:56:35Z",
+ "audited": "2026-11-17T22:16:08Z",
  "cards": {
   "SS-retrieval": {
    "drawn": 0,
@@ -43,12 +43,12 @@
    "unresolved": 0
   }
  },
- "cost_usd": "0.00024145",
+ "cost_usd": "0",
  "per_card": 30,
  "revision": "r2",
  "split": "evaluation",
  "tally": {
-  "asked": 1,
-  "reused": 2
+  "asked": 0,
+  "reused": 3
  }
 }

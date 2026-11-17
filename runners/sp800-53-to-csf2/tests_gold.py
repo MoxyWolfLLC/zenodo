@@ -65,6 +65,9 @@ class Statistics(unittest.TestCase):
         self.assertEqual((s["agree_blind"], s["agree_assisted"], s["difference"], s["discordant"], s["blind_wins_among_discordant"]), (0.5, 0.5, 0.0, 2, 1))
         self.assertEqual(len(s["wilson_95"]), 2)
         self.assertEqual(gold.anchoring_stat([])["difference"], None)
+        # an unresolved ruling on either side is not a matched pair
+        s = gold.anchoring_stat(rows + [(None, "equal", "equal"), ("equal", None, "equal")])
+        self.assertEqual((s["pairs_drawn"], s["pairs_resolved"], s["pairs_unresolved"], s["agree_blind"], s["discordant"]), (6, 4, 2, 0.5, 2))
 
     def test_wilson_gate_rules(self):
         self.assertAlmostEqual(score.wilson_lower(25, 25), 0.90235, places=4)
@@ -94,7 +97,7 @@ class Scoring(unittest.TestCase):
                     con.execute("INSERT INTO votes (output_id, proposal_output_id, voter, evidence_identity, quoted_spans, vote_params, identity, vote, prompt_version, revision, created) "
                                 "VALUES (?,?,?,?,?,?,?,?,?,?,?)", (f"v{i}{v}", f"p{i}", v, "s", "[]", json.dumps({"c_min": 0.7}), "q", "equal", "vote-v1", "r2", "now"))
         gold_doc = {"primary_gold": [{"unit_release": f"ac-{i}@r", "candidate_id": "PR.AA-01", "label": "equal" if i < 26 else "subset_of"} for i in range(30)],
-                    "missed_link_draw": {"weight": 19.6, "n": 4, "rows": [{"label": "equal"}, {"label": "no_relationship"}] * 2},
+                    "missed_link_draw": {"weight": 19.6, "n": 5, "rows": [{"label": "equal"}, {"label": "no_relationship"}] * 2 + [{"label": None}]},
                     "double_ruled": {"krippendorff_alpha": 0.8, "n": 6}, "anchoring": {"difference": 0.1, "rows": []}, "packets": 30}
         here = score.HERE
         try:
@@ -114,7 +117,9 @@ class Scoring(unittest.TestCase):
         self.assertEqual(out["predictions"], {"pairs": 30, "with_prediction": 28, "with_label": 30, "unresolved_gold": 0})
         self.assertEqual(out["coverage"]["with_a_true_link"], 30)
         self.assertEqual(out["missed_links"]["retrieved_voted_no_relationship_true_links"], 2)
-        self.assertAlmostEqual(out["missed_links"]["estimate"], (2 + 19.6 * 2) / (30 + 19.6 * 2), places=5)
+        w = 19.6 * 5 / 4   # the protocol weight scaled to the four resolved draws of five
+        self.assertAlmostEqual(out["missed_links"]["estimate"], (2 + w * 2) / (30 + w * 2), places=5)
+        self.assertEqual((out["missed_links"]["draw_n"], out["missed_links"]["draw_resolved"], out["missed_links"]["draw_unresolved"]), (5, 4, 1))
         shutil.rmtree(tmp)
 
 
@@ -153,6 +158,10 @@ class Panels(unittest.TestCase):
         self.assertEqual((r2["label"], r2["reason"]), ("equal", "majority"))
         self.assertEqual([c for c in a2.calls if c[0] == "c/z"], [("c/z", 2)])
         self.assertEqual(g2.tally, {"asked": 3, "reused": 0})
+        # asked twice and still invalid: the vote is final, and a rerun reuses it instead of asking a third time
+        self.assertEqual([tuple(r) for r in g.db.execute("SELECT level, reason FROM council_rulings WHERE voice='c/z'")], [("invalid", "unparsed#final")])
+        again = g.rule(self.PACKET, "primary", "evaluation", "blind")
+        self.assertEqual((again["label"], again["reason"], len(a.calls)), (None, "unresolved", 5))
 
     def test_a_three_way_split_of_valid_votes_is_the_null_and_two_invalid_never_make_a_majority(self):
         g, _ = self.gold({"a/x": [{"level": "equal"}], "b/y": [{"level": "subset_of"}], "c/z": [{"level": "intersects_with"}]})

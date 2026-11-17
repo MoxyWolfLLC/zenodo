@@ -101,12 +101,20 @@ def score(split, rev, db_path=STORE):
     weight = gold["missed_link_draw"]["weight"]
     retrieved_true = sum(1 for k, lv in label.items() if lv in cards.LEVELS)
     missed_retrieved = sum(1 for k, p in preds.items() if p == cards.NULL and label.get((k[0], k[3])) in cards.LEVELS)
-    draw_true = sum(1 for r in gold["missed_link_draw"]["rows"] if r["label"] in cards.LEVELS)
-    total = retrieved_true + weight * draw_true
+    draw_rows = gold["missed_link_draw"]["rows"]
+    draw_resolved = [r for r in draw_rows if r["label"] is not None]
+    draw_true = sum(1 for r in draw_resolved if r["label"] in cards.LEVELS)
+    # an unresolved draw is a missing observation, not a zero: the protocol weight is scaled to the resolved draws
+    # (the realized inclusion probability), and the counts are disclosed
+    weight_applied = weight * len(draw_rows) / len(draw_resolved) if draw_resolved else None
+    total = retrieved_true + (weight_applied or 0) * draw_true
     missed = {"retrieved_voted_no_relationship_true_links": missed_retrieved, "retrieved_true_links": retrieved_true,
-              "non_retrieved_draw_true_links": draw_true, "non_retrieved_weight": weight, "draw_n": gold["missed_link_draw"]["n"],
-              "estimate": round((missed_retrieved + weight * draw_true) / total, 6) if total else None,
-              "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson)"}
+              "retrieved_unresolved": unresolved,
+              "non_retrieved_draw_true_links": draw_true, "non_retrieved_weight": weight, "non_retrieved_weight_applied": round(weight_applied, 6) if weight_applied else None,
+              "draw_n": gold["missed_link_draw"]["n"], "draw_resolved": len(draw_resolved), "draw_unresolved": len(draw_rows) - len(draw_resolved),
+              "estimate": round((missed_retrieved + weight_applied * draw_true) / total, 6) if total and weight_applied else None,
+              "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson; "
+                            "unresolved rulings are missing observations: left out of both strata, with the draw weight scaled to the resolved draws)"}
     ss = {card: {"pool": c["pool"], "n": c["n"], "unresolved": c.get("unresolved", 0), "errors": c["errors"], "error_rate": c["error_rate"]}
           for card, c in (audit or {}).get("cards", {}).items()}
     out = {"split": split, "revision": rev, "config_sha256": config["sha256"], "c_min": config["c_min"], "rows": rows,

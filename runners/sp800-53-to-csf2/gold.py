@@ -150,10 +150,10 @@ class Gold:
         votes = []
         for m in self.voices:
             stored = self.rows("SELECT level, reason FROM council_rulings WHERE packet_id=? AND voice=? AND session=?", pid, m, session)
-            if stored and stored[0]["level"] != "invalid":
+            if stored and (stored[0]["level"] != "invalid" or stored[0]["reason"].endswith("#final")):
                 with self.lock:
-                    self.tally["reused"] += 1
-                votes.append({"model": m, "level": stored[0]["level"], "reason": stored[0]["reason"]})
+                    self.tally["reused"] += 1   # a valid vote, or an invalid already asked twice: the panel stays as recorded
+                votes.append({"model": m, "level": None if stored[0]["level"] == "invalid" else stored[0]["level"], "reason": stored[0]["reason"]})
                 continue
             tries = 1 if stored else 2   # a stored invalid was the first try
             for attempt in range(tries):
@@ -187,6 +187,8 @@ class Gold:
         level = out.get("level") if isinstance(out, dict) else None
         level = level if level in cards.LEVELS or level == cards.NULL else None
         reason = (out.get("reason") if isinstance(out, dict) else None) or ("unparsed" if level is None else "")
+        if level is None and attempt >= 2:
+            reason = str(reason)[:290] + "#final"   # asked twice: a rerun reuses the unresolved vote instead of asking a third time
         with self.lock, self.db:
             self.db.execute("INSERT OR REPLACE INTO council_rulings (packet_id, voice, packet_class, split, blind, level, reason, session, created) "
                             "VALUES (?,?,?,?,?,?,?,?,?)", (pid, m, packet_class, split, int(blind), level or "invalid", str(reason)[:300], session, now()))
@@ -254,6 +256,7 @@ class Gold:
                              "rows": [{"packet_sha256": pid, "blind": primary[by_pid[pid]]["label"], "assisted": assisted[pid]["label"],
                                        "proposal": attachments[pid]["proposal"]["level"] if attachments[pid] else None} for pid in pair_ids]},
                "missed_link_draw": {"r": r, "seed": draw_seed(protocol, "missed_link", split), "n": len(missed),
+                                    "resolved": sum(1 for v in missed.values() if v["label"] is not None),
                                     "weight": protocol["missed_link_estimand"]["non_retrieved_stratum"]["weight"],
                                     "rows": [{"unit_release": k[0], "unit_id": units[k[0]]["uid"], "candidate_id": k[1], "packet_sha256": r["packet_id"],
                                               "label": r["label"], "reason": r["reason"]} for k, r in missed.items()]},
@@ -279,11 +282,15 @@ def krippendorff_nominal(pairs):
 
 def anchoring_stat(rows):
     """Share of rulings that agree with the run's proposal, blind minus assisted, with a 95% Wilson interval on the
-    discordant pairs (pairs where exactly one of the two rulings agrees with the proposal)."""
+    discordant pairs (pairs where exactly one of the two rulings agrees with the proposal). A pair with an unresolved
+    ruling on either side is not a matched pair: it is left out and counted as unresolved."""
     import math
+    drawn = len(rows)
+    rows = [(b, a, p) for b, a, p in rows if b is not None and a is not None]
     n = len(rows)
     if not n:
-        return {"agree_blind": None, "agree_assisted": None, "difference": None, "discordant": 0, "wilson_95": None}
+        return {"agree_blind": None, "agree_assisted": None, "difference": None, "discordant": 0, "wilson_95": None,
+                "pairs_drawn": drawn, "pairs_resolved": 0, "pairs_unresolved": drawn}
     ab = sum(1 for b, a, p in rows if b == p) / n
     aa = sum(1 for b, a, p in rows if a == p) / n
     disc = [(b == p, a == p) for b, a, p in rows if (b == p) != (a == p)]
@@ -295,7 +302,7 @@ def anchoring_stat(rows):
         half = z * math.sqrt(ph * (1 - ph) / m + z * z / (4 * m * m)) / (1 + z * z / m)
         wilson = [round(centre - half, 4), round(centre + half, 4)]
     return {"agree_blind": round(ab, 4), "agree_assisted": round(aa, 4), "difference": round(ab - aa, 4), "discordant": m,
-            "blind_wins_among_discordant": k, "wilson_95": wilson}
+            "blind_wins_among_discordant": k, "wilson_95": wilson, "pairs_drawn": drawn, "pairs_resolved": n, "pairs_unresolved": drawn - n}
 
 
 def audit(split, db_path=STORE):
