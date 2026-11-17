@@ -215,10 +215,11 @@ class Harness:
     # ---- triad: a vote by the proposer's provider is never stored ----------------------------
     def triad(self, p):
         proposer = p["proposer"]["provider"]
-        conflict = [v for v in p["votes"] if v["provider"] == proposer]
-        if conflict:
-            print(f"refused: a vote by the proposer's provider {proposer} ({conflict[0]['model_id']})", file=sys.stderr)
-            return self.finish("triad", {"refused": True, "stored_votes": [], "reason": "proposer_votes"}, 1)
+        bad = engine.panel_violations(p["votes"], proposer)
+        if bad:
+            i, why = bad[0]
+            print(f"refused: {why}: {p['votes'][i]['provider']} ({p['votes'][i]['model_id']}); proposer is {proposer}", file=sys.stderr)
+            return self.finish("triad", {"refused": True, "stored_votes": [], "violations": [[i, why] for i, why in bad]}, 1)
         stored = [{"provider": v["provider"], "model_id": v["model_id"], "answer": v["answer"],
                    "unit_id": p["unit"]["id"], "candidate_id": p["candidate"]["id"]} for v in p["votes"]]
         return self.finish("triad", {"refused": False, "stored_votes": stored})

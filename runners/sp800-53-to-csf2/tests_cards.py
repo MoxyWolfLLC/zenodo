@@ -80,5 +80,22 @@ class Engine(unittest.TestCase):
         self.assertEqual(engine.run_case(case, S)["reason"], "auto_accept")
 
 
+    def test_a_proposer_seat_or_duplicate_seat_never_counts(self):
+        engine = load("csf2_engine", os.path.join(HERE, "engine.py"))
+        unit = {"id": "AC-1", "type": "control", "text": "Maintain an inventory."}
+        base = {"unit": unit, "candidate": {"id": "PR.AA-01"}, "extraction": {"complete": True, "work_object": True},
+                "retrieval": {"candidate_ids": ["PR.AA-01"]},
+                "proposal": {"answer": "equal", "confidence": 0.9, "quotes": ["inventory"], "conflict": False}}
+        S = ours.make("r1", "openai/p", ["anthropic/a", "google/g", "openrouter/m"], closed=[])
+        good = [{"provider": "anthropic", "answer": "equal"}, {"provider": "google", "answer": "equal"},
+                {"provider": "openrouter", "answer": "equal"}]
+        self.assertEqual(engine.run_case({**base, "votes": good}, S)["reason"], "auto_accept")
+        for seat in ({"provider": "openai", "answer": "equal"}, {"provider": "anthropic", "answer": "equal"}):
+            d = engine.run_case({**base, "votes": good[:2] + [seat]}, S)
+            self.assertEqual((d["route"], d["reason"], d["card_id"]), ("REVIEW", "incomplete_triad", "T1"))
+        self.assertEqual(engine.panel_violations(good[:2] + [{"provider": "openai"}], "openai"), [(2, "proposer_seat")])
+        self.assertEqual(engine.panel_violations(good[:2] + [good[0]], "openai"), [(2, "duplicate_seat")])
+
+
 if __name__ == "__main__":
     unittest.main()
