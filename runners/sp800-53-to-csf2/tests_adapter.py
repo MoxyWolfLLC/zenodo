@@ -61,7 +61,8 @@ class AdapterTests(unittest.TestCase):
         self.state = os.path.join(self.tmp, "run_state.json")
         self.stub = Stub({"api.openai.com": OPENAI, "api.anthropic.com": ANTHROPIC,
                           "generativelanguage": GOOGLE, "openrouter.ai": OPENROUTER})
-        self.a = providers.Adapter(protocol(), transport=self.stub, accounting=self.acc, state=self.state, events=self.ev)
+        self.a = providers.Adapter(protocol(), transport=self.stub, accounting=self.acc, state=self.state, events=self.ev,
+                                   protocol_sha256="f" * 64)
         self.q = providers.identity("vote", unit_release="ac-1@5.2.0", proposal_output="p1", quoted_spans=["x"], threshold=0.5)
 
     def rows(self, path=None):
@@ -91,6 +92,7 @@ class AdapterTests(unittest.TestCase):
         starts = [e for e in self.rows(self.ev) if e["event"] == "call_started"]
         self.assertEqual([e["provider"] for e in starts], ["openai", "anthropic", "google", "openrouter"])
         self.assertEqual({e["transport"] for e in starts}, {"stub"})
+        self.assertEqual({e["protocol_sha256"] for e in starts}, {"f" * 64})
 
     def test_guard_refuses_past_the_allowance_before_any_request(self):
         self.spend("50.0")   # the global allowance is now exactly the reserve: nothing fits

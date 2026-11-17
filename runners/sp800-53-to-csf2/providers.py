@@ -146,11 +146,14 @@ class ReplayTransport:
 
 
 class Adapter:
-    def __init__(self, protocol=None, transport=None, accounting=ACCOUNTING, state=STATE, events=EVENTS, replay=False):
+    def __init__(self, protocol=None, transport=None, accounting=ACCOUNTING, state=STATE, events=EVENTS, replay=False,
+                 protocol_sha256=None):
         if protocol is None:
-            with open(PROTOCOL, encoding="utf-8") as f:
-                protocol = json.load(f)
+            with open(PROTOCOL, "rb") as f:
+                raw = f.read()
+            protocol, protocol_sha256 = json.loads(raw), hashlib.sha256(raw).hexdigest()
         self.protocol = protocol
+        self.protocol_sha256 = protocol_sha256   # every call_started names the frozen protocol it ran under
         b = protocol["budget"]
         self.prices = {m: {"in": D(p["in"]), "out": D(p["out"]), "provider": p["provider"]} for m, p in b["prices"].items()}
         self.cap, self.reserve = D(b["cap_usd"]), D(b["reserve_usd"])
@@ -247,7 +250,7 @@ class Adapter:
         self._guard(base, charge, remaining, token_bound(prompt), tin)
         self.event("call_started", role="council" if role == "council" else "model", stage=role, provider=provider,
                    model=model, transport=self.transport.kind, question_identity=question_identity["id"],
-                   protocol_sha256=self.protocol.get("sha256"), **context)
+                   protocol_sha256=self.protocol_sha256, **context)
         try:
             raw = self._send(provider, model, prompt, tout)
         except ReplayViolation:
@@ -268,7 +271,7 @@ class Adapter:
         self._guard(base, charge, remaining, token_bound(text), tin)
         self.event("call_started", role="retriever", stage="embedding", provider=provider, model=model,
                    transport=self.transport.kind, question_identity=question_identity["id"],
-                   protocol_sha256=self.protocol.get("sha256"), **context)
+                   protocol_sha256=self.protocol_sha256, **context)
         try:
             raw = self.transport.post("https://api.openai.com/v1/embeddings", {"Authorization": f"Bearer {KEYS['openai']()}"},
                                       {"model": model.split("/", 1)[1], "input": text})
