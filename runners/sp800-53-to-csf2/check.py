@@ -13,6 +13,12 @@
 Operations (item 5): gates, protocol, gold, provider_call, triad. seed, conformance, replay and policy
 arrive with items 6 to 9 and refuse with exit 2 until then.
 
+What the harness is built on: FixtureAdapter subclasses Adapter in runners/sp800-53-to-csf2/providers.py and
+replaces only _send, _usage and _content (the guard, ceilings, identities, accounting rows and events are
+inherited); provider_call also replaces spend() with the ledger position the payload states. The cards are
+runners/sp800-53-to-csf2/cards.py, the walk is runners/sp800-53-to-csf2/engine.py, the ledger is
+runners/sp800-53-to-csf2/store.py.
+
 Exit codes: 0 done; 1 refused (gold contamination, triad conflict, protocol hash mismatch); 2 unsupported
 operation; 3 split violation; 4 budget refusal; 5 outbound attempt in replay mode.
 """
