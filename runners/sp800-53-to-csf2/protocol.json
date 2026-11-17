@@ -20,9 +20,9 @@
   },
   "budget": {
     "by_provider_usd": {
-      "anthropic": 2.82,
-      "google": 4.8,
-      "openai": 2.16,
+      "anthropic": 2.81,
+      "google": 4.81,
+      "openai": 2.17,
       "openrouter": 9.43
     },
     "cap_usd": 60.0,

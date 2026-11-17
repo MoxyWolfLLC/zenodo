@@ -190,6 +190,10 @@ def price(model, tokens_in, tokens_out):
     return (tokens_in * p["in"] + tokens_out * p["out"]) / 1e6
 
 
+def calls_usd(line):
+    return line["calls"] * price(line["model"], line["tokens_in_ceiling"], line["tokens_out_ceiling"])
+
+
 def budget(n_units, n_by_split, hub_count):
     """Every per-unit count derives from the sample and K; each fixed count names its source."""
     lines = []
@@ -221,10 +225,11 @@ def budget(n_units, n_by_split, hub_count):
                 f"{name} split: " + ", ".join(f"{k} {v}" for k, v in packets.items()) + "; one call per packet per voice", c["in"], c["out"])
     for vm in v["models"]:
         add("r3_allowance", vm, n_test * K, "sealed-test votes re-asked, worst case every one, one per voter", v["in"], v["out"])
-    total = round(sum(l["usd"] for l in lines), 2)
+    total = round(sum(calls_usd(l) for l in lines), 2)
     by_provider = {}
-    for l in lines:
-        by_provider[l["provider"]] = round(by_provider.get(l["provider"], 0) + l["usd"], 2)
+    for l in lines:   # accumulate at full precision, round once (review F2)
+        by_provider[l["provider"]] = by_provider.get(l["provider"], 0) + calls_usd(l)
+    by_provider = {k: round(v, 2) for k, v in by_provider.items()}
     return {"cap_usd": CAP, "reserve_usd": RESERVE, "reserve_rule": "inside the cap; released only in the deliverables phase",
             "k": K, "r": R, "voices": VOICES, "lines": lines, "total_usd": total, "total_with_reserve_usd": round(total + RESERVE, 2),
             "by_provider_usd": by_provider, "prices": PRICES, "price_source": PRICE_SOURCE}
