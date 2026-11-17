@@ -44,6 +44,7 @@ DATA = os.path.join(HERE, "data")
 STORE = os.environ.get("GSTACK_STORE") or os.path.join(HERE, "run.sqlite")
 CALIBRATION = os.environ.get("GSTACK_CALIBRATION") or os.path.join(HERE, "calibration.jsonl")
 CONFIG = os.environ.get("GSTACK_CONFIG") or os.path.join(HERE, "config.frozen.json")
+PROGRESS = CALIBRATION + ".progress"      # the revision in flight and its ledger position before its first call
 
 
 def load(name):
@@ -102,6 +103,11 @@ class Catalog:
         return f"{unit_id}@{self.sha[:12]}"
 
 
+def protocol_hash():
+    with open(os.path.join(HERE, "protocol.sha256"), encoding="utf-8") as f:
+        return f.read().split()[0]
+
+
 def oscal_id(target):
     m = re.match(r"([A-Za-z]{2})-0*(\d+)(?:\((\d+)\))?", target)
     return f"{m.group(1).lower()}-{int(m.group(2))}" + (f".{int(m.group(3))}" if m.group(3) else "")
@@ -113,8 +119,8 @@ def references():
         entries = json.load(f)["entries"]
     refs = {}
     for e in entries:
-        if e.get("granularity") != "control" or e.get("csf_element_status") != "active":
-            continue
+        if e.get("granularity") != "control" or e.get("csf_element_status") != "active" or e.get("csf_kind") != "subcategory":
+            continue                       # 12 control-level links point at a category, which no candidate can be
         refs.setdefault(e.get("target_oscal_id") or oscal_id(e["target"]), set()).add(e["csf_element"])
     return refs
 
@@ -359,6 +365,18 @@ def calibrate(args):
         rev = f"cal-{n}"
         S = cards.make(rev, run.proposer, run.triad, c_min=c_min, qv={"propose": prompt_version})
         before, by_before = adapter.spend()
+        progress = {}
+        if os.path.isfile(PROGRESS):               # a revision interrupted after paid calls: its baseline, not a fresh one
+            with open(PROGRESS, encoding="utf-8") as f:
+                progress = json.load(f)
+        if progress.get("revision") == rev:
+            before = Decimal(progress["spend_before"])
+            by_before = {k: Decimal(v) for k, v in progress["by_provider_before"].items()}
+            print(f"{rev}: resuming an interrupted revision; cost counted from its recorded baseline {providers.money(before)} USD")
+        else:
+            with open(PROGRESS, "w", encoding="utf-8") as f:
+                json.dump({"revision": rev, "prompt_version": prompt_version, "c_min": c_min, "spend_before": providers.money(before),
+                           "by_provider_before": {k: providers.money(v) for k, v in by_before.items()}, "started": now()}, f)
         run.tally = {"asked": 0, "reused": 0}
         t0 = time.time()
         decisions = run.run_split(units, S, prompt_version, args.workers)
@@ -375,6 +393,7 @@ def calibrate(args):
         rows.append(row)
         with open(CALIBRATION, "a", encoding="utf-8") as f:
             f.write(json.dumps(row, sort_keys=True) + "\n")
+        os.remove(PROGRESS)
         print(f"{rev}: {prompt_version} c_min {c_min}  cost {row['cost_usd']} USD  asked {row['asked']} reused {row['reused']}  "
               f"f1 {score['f1']:.3f} (p {score['precision']:.3f} r {score['recall']:.3f}; tp {score['tp']} fp {score['fp']} fn {score['fn']}; "
               f"{score['scored_units']} scored units)  {row['seconds']}s")
@@ -384,7 +403,7 @@ def calibrate(args):
     config = {"c_min": best["c_min"], "prompt_versions": {"extraction": "extract-v1", "proposal": best["prompt_version"], "vote": "vote-v1"},
               "chosen_revision": best["revision"], "score": best["score"], "revisions": [r["revision"] for r in rows],
               "k": protocol["budget"]["k"], "engine": cards.engine_hash(),
-              "protocol_sha256": open(os.path.join(HERE, "protocol.sha256")).read().split()[0], "frozen": now()}
+              "protocol_sha256": protocol_hash(), "frozen": now()}
     raw = json.dumps(config, indent=1, sort_keys=True).encode()
     config["sha256"] = hashlib.sha256(raw).hexdigest()
     with open(CONFIG, "w", encoding="utf-8") as f:

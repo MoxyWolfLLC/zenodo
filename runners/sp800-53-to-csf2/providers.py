@@ -152,18 +152,24 @@ class Transport:
     """Real HTTP, one attempt per call. Tests and the fixture harness replace it; replay mode replaces it with a
     refuser. Retrying is the adapter's: every attempt is guarded, reserved and accounted."""
     kind = "live"
-    RETRYABLE = (429, 502, 503, 504)   # the provider answered: it did not process the request
+    RETRYABLE = (429,)   # the one status that says the request was not processed; a 5xx from a gateway says nothing
 
     def post(self, url, headers, body, timeout=120):
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", **headers})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return json.loads(r.read().decode())
+                raw = r.read()
         except urllib.error.HTTPError as e:
-            raise TransportError(f"{url}: HTTP {e.code}: {e.read().decode()[:300]}", answered=True,
+            # a 4xx is the provider's own answer, nothing billed; a 5xx may come from a gateway in front of a model that
+            # did the work, so its billing is unknown
+            raise TransportError(f"{url}: HTTP {e.code}: {e.read().decode()[:300]}", answered=e.code < 500,
                                  retryable=e.code in self.RETRYABLE, status=e.code)
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
             raise TransportError(f"{url}: {e}", answered=False, retryable=False)
+        try:
+            return json.loads(raw.decode())
+        except (ValueError, UnicodeDecodeError) as e:    # the request completed; the response is unusable: billing unknown
+            raise TransportError(f"{url}: unusable response: {e}", answered=False, retryable=False)
 
 
 class ReplayTransport:
@@ -240,40 +246,50 @@ class Adapter:
             self._inflight[key] = self._inflight.get(key, Decimal(0)) + sign * charge
 
     def _attempts(self, base, charge, provider, bound, tin, role, send):
-        """Every attempt is guarded and reserved on its own; an attempt the provider answered with an error status
-        is logged (nothing billed) and retried with backoff when the status says so; an attempt whose outcome is
-        unknown is charged at the ceiling and not retried. Returns (raw response, remaining at the attempt)."""
+        """Every attempt is guarded and reserved on its own. An attempt the provider answered with a 4xx bills nothing:
+        it is logged as call_failed and retried with backoff only on 429. An attempt whose outcome is unknown (a
+        timeout, a dropped connection, a 5xx, an unusable response) is charged at the ceiling, under its reservation,
+        and never retried. A completed attempt returns with its reservation still held: the caller settles the charge
+        and then calls _release, so no other worker reads an allowance that counts neither the reservation nor the
+        charge (review 20261117-084733 F1). Returns (raw response, remaining at the attempt)."""
         for attempt in range(len(BACKOFF) + 1):
             with self._lock:
                 remaining = self.remaining(provider)
                 self._guard(base, charge, remaining, bound, tin)
                 self._reserve(provider, charge, +1)
+            self.event("call_started", role=role, stage=base["stage"], provider=provider, model=base["model"],
+                       transport=self.transport.kind, question_identity=base["question_identity"]["id"],
+                       protocol_sha256=self.protocol_sha256, attempt=attempt + 1,
+                       **{k: v for k, v in base.items() if k not in BASE_KEYS})
             try:
-                self.event("call_started", role=role, stage=base["stage"], provider=provider, model=base["model"],
-                           transport=self.transport.kind, question_identity=base["question_identity"]["id"],
-                           protocol_sha256=self.protocol_sha256, attempt=attempt + 1,
-                           **{k: v for k, v in base.items() if k not in BASE_KEYS})
-                try:
-                    return send(), remaining
-                except ReplayViolation:
-                    self.event("outbound_attempt", role=role, stage=base["stage"], provider=provider)
-                    raise
-                except TransportError as e:
-                    if e.answered:
-                        self.event("call_failed", role=role, stage=base["stage"], provider=provider, model=base["model"],
-                                   status=e.status, attempt=attempt + 1, retry=e.retryable and attempt < len(BACKOFF))
-                    else:   # outcome unknown: the ceiling is charged, nothing is retried
+                return send(), remaining
+            except ReplayViolation:
+                self._release(provider, charge)
+                self.event("outbound_attempt", role=role, stage=base["stage"], provider=provider)
+                raise
+            except TransportError as e:
+                if not e.answered:   # outcome unknown: the ceiling is charged before the reservation goes, nothing is retried
+                    with self._lock:
                         self.record({**base, "refused": False, "evidence": "unpriced", "charged_usd": money(charge),
                                      "tokens_in": None, "tokens_out": None, "max_expected_charge_usd": money(charge),
                                      "remaining_usd": money(remaining), "failure": str(e)[:200], "attempt": attempt + 1})
-                        raise
-                    if not (e.retryable and attempt < len(BACKOFF)):
-                        raise
-            finally:
-                with self._lock:
-                    self._reserve(provider, charge, -1)
+                        self._reserve(provider, charge, -1)
+                    raise
+                self._release(provider, charge)
+                retry = e.retryable and attempt < len(BACKOFF)
+                self.event("call_failed", role=role, stage=base["stage"], provider=provider, model=base["model"],
+                           status=e.status, attempt=attempt + 1, retry=retry)
+                if not retry:
+                    raise
+            except BaseException:
+                self._release(provider, charge)
+                raise
             time.sleep(BACKOFF[attempt])
         raise AssertionError("unreachable")
+
+    def _release(self, provider, charge):
+        with self._lock:
+            self._reserve(provider, charge, -1)
 
     def family(self, model):
         """The model's maker: the seat identity for the triad and the council, whoever bills the call."""
@@ -344,8 +360,14 @@ class Adapter:
                 "decoding": DECODING.get(provider, {}), **context}
         raw, remaining = self._attempts(base, charge, provider, token_bound(prompt), tin, "council" if role == "council" else "model",
                                         lambda: self._send(provider, model, prompt, tout))
-        usage, reported = self._usage(provider, raw)
-        self._settle(base, charge, remaining, usage, reported)   # the request completed: it is on the ledger before parsing
+        try:
+            usage, reported = self._usage(provider, raw)
+            with self._lock:
+                self._settle(base, charge, remaining, usage, reported)   # on the ledger, then the reservation goes, under one lock
+                self._reserve(provider, charge, -1)
+        except BaseException:
+            self._release(provider, charge)
+            raise
         text = self._content(provider, raw)
         return self._parse(text) if json_out else text
 
@@ -359,8 +381,14 @@ class Adapter:
                                         lambda: self.transport.post("https://api.openai.com/v1/embeddings",
                                                                     {"Authorization": f"Bearer {KEYS['openai']()}"},
                                                                     {"model": model.split("/", 1)[1], "input": text}))
-        tokens = (raw.get("usage") or {}).get("prompt_tokens")
-        self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
+        try:
+            tokens = (raw.get("usage") or {}).get("prompt_tokens")
+            with self._lock:
+                self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
+                self._reserve(provider, charge, -1)
+        except BaseException:
+            self._release(provider, charge)
+            raise
         return raw["data"][0]["embedding"]
 
     # ---- providers ----------------------------------------------------------------------------

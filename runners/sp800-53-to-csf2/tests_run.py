@@ -43,7 +43,8 @@ class Calibration(unittest.TestCase):
         chosen = next(r for r in self.cal if r["revision"] == self.config["chosen_revision"])
         self.assertEqual(self.config["c_min"], chosen["c_min"])
         self.assertEqual(self.config["prompt_versions"]["proposal"], chosen["prompt_version"])
-        self.assertEqual(self.config["protocol_sha256"], open(os.path.join(HERE, "protocol.sha256")).read().split()[0])
+        with open(os.path.join(HERE, "protocol.sha256"), encoding="utf-8") as f:
+            self.assertEqual(self.config["protocol_sha256"], f.read().split()[0])
         body = {k: v for k, v in self.config.items() if k != "sha256"}
         self.assertEqual(self.config["sha256"], hashlib.sha256(json.dumps(body, indent=1, sort_keys=True).encode()).hexdigest())
 
@@ -63,6 +64,49 @@ class Calibration(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
         self.assertIn("already frozen", r.stderr)
         self.assertEqual(len(rows("calibration.jsonl")), len(self.cal), "nothing appended")
+
+
+    def test_reference_semantics_is_the_pinned_source_with_the_fields_the_weak_labels_read(self):
+        with open(os.path.join(HERE, "reference_semantics.json"), encoding="utf-8") as f:
+            ref = json.load(f)
+        with open(os.path.join(HERE, "sources.json"), encoding="utf-8") as f:
+            sources = json.load(f)
+        with open(os.path.join(HERE, "index.json"), encoding="utf-8") as f:
+            hub = {r["id"] for r in json.load(f)["rows"]}
+        self.assertEqual(set(ref["policy"]), {"five_class", "association", "absent"})
+        control = [e for e in ref["entries"] if e.get("granularity") == "control"]
+        self.assertEqual(len(control), sources["counts"]["references"]["workbook_control_level_links"])
+        self.assertTrue(all(e["source"] in sources["files"] for e in control), "every entry names a pinned source file")
+        for e in control:
+            self.assertEqual(set(e) >= {"csf_element", "csf_element_status", "target", "target_oscal_id", "granularity", "tag"}, True)
+            self.assertEqual(e["tag"], "association")
+            self.assertRegex(e["target_oscal_id"], r"^[a-z]{2}-\d+(\.\d+)?$")
+        active = [e for e in control if e["csf_element_status"] == "active" and e["csf_kind"] == "subcategory"]
+        self.assertEqual(len(active), 1468)
+        self.assertTrue(all(e["csf_element"] in hub for e in active), "every active subcategory reference names a hub entry in the index")
+        self.assertEqual(len([e for e in control if e["csf_kind"] == "category"]), 12, "the category-level links the weak labels skip")
+        self.assertEqual(sorted({e["source"] for e in ref["entries"]}), sorted(set(sources["files"]) - {"sp800-53r5_catalog.json"}))
+
+    def test_an_interrupted_revision_keeps_its_baseline(self):
+        import subprocess, sys, tempfile, shutil
+        tmp = tempfile.mkdtemp()
+        store = os.path.join(tmp, "store.sqlite"); shutil.copyfile(os.path.join(HERE, "run.sqlite"), store)
+        cal, cfg, acc, ev = (os.path.join(tmp, n) for n in ("cal.jsonl", "cfg.json", "acc.jsonl", "ev.jsonl"))
+        with open(acc, "w") as f:
+            f.write(json.dumps({"charged_usd": "1.5", "provider": "openai", "stage": "prior"}) + "\n")
+        with open(cal + ".progress", "w") as f:    # cal-1 was interrupted after 0.5 USD of its own calls were paid
+            json.dump({"revision": "cal-1", "prompt_version": "propose-v1", "c_min": 0.7, "spend_before": "1.0",
+                       "by_provider_before": {"openai": "1.0"}, "started": "x"}, f)
+        env = {**os.environ, "GSTACK_STORE": store, "GSTACK_CALIBRATION": cal, "GSTACK_CONFIG": cfg, "GSTACK_ACCOUNTING": acc, "GSTACK_EVENTS": ev}
+        r = subprocess.run([sys.executable, "-I", "run.py", "calibrate", "--units", "2", "--revisions", "1", "--workers", "1"], cwd=HERE,
+                           capture_output=True, text=True, env=env)
+        self.assertEqual(r.returncode, 0, r.stderr[-300:])
+        self.assertIn("resuming an interrupted revision", r.stdout)
+        row = rows(os.path.relpath(cal, HERE))
+        self.assertEqual(len(row), 1)
+        self.assertGreaterEqual(float(row[0]["cost_usd"]), 0.5, "the interrupted calls' 0.5 USD is in the revision's cost")
+        self.assertFalse(os.path.exists(cal + ".progress"))
+        shutil.rmtree(tmp)
 
 
 if __name__ == "__main__":

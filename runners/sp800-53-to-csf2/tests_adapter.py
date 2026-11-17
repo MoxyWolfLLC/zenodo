@@ -286,5 +286,69 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(self.rows(self.ev)[-1]["event"], "call_failed")
 
 
+    def test_reservation_holds_until_the_charge_is_recorded(self):
+        """F1 (round 2): a completed request keeps its reservation until its charge is on the ledger."""
+        import threading
+        caps = self.a.provider_caps
+        one = self.a.max_charge("google/gemini-2.5-flash-lite", *self.a.ceilings("vote"))
+        self.spend(str(caps["openrouter"] - one - Decimal("0.0000001")), provider="openrouter")   # room for exactly one
+        arrived, released = threading.Event(), threading.Event()
+        real_usage = self.a._usage
+
+        def slow_usage(*args, **kw):           # the response is in hand, the charge not yet recorded, the lock free
+            arrived.set()
+            self.assertTrue(released.wait(5), "the second call never ran")
+            return real_usage(*args, **kw)
+        self.a._usage = slow_usage
+        results, errs = [], []
+
+        def first():
+            results.append(self.a.call("vote", "google/gemini-2.5-flash-lite", "vote-v1", "p", self.q, "e1"))
+
+        def second():
+            arrived.wait(5)
+            err = io.StringIO()
+            try:
+                with redirect_stderr(err):
+                    results.append(self.a.call("vote", "google/gemini-2.5-flash-lite", "vote-v1", "p", self.q, "e1"))
+            except providers.BudgetRefused:
+                errs.append(err.getvalue())
+            released.set()
+        threads = [threading.Thread(target=first), threading.Thread(target=second)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join(10)
+        self.assertEqual((len(results), len(errs)), (1, 1))
+        self.assertEqual(self.a._inflight.get("*", Decimal(0)), Decimal(0))
+
+    def test_transport_classifies_answers_and_unknown_outcomes(self):
+        """F2 (round 2): a 4xx is the provider's answer; a 5xx, a dropped read or an unusable body is unknown."""
+        import urllib.error
+        tr = providers.Transport()
+
+        class Resp:
+            def __init__(self, body): self.body = body
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return self.body
+        cases = ((urllib.error.HTTPError("u", 429, "r", {}, io.BytesIO(b"slow")), True, True, 429),
+                 (urllib.error.HTTPError("u", 400, "r", {}, io.BytesIO(b"bad")), True, False, 400),
+                 (urllib.error.HTTPError("u", 503, "r", {}, io.BytesIO(b"gw")), False, False, 503),
+                 (TimeoutError("t"), False, False, None))
+        for exc, answered, retryable, status in cases:
+            with self.subTest(exc=type(exc).__name__, status=status):
+                providers.urllib.request.urlopen = lambda req, timeout=0, e=exc: (_ for _ in ()).throw(e)
+                with self.assertRaises(providers.TransportError) as cm:
+                    tr.post("https://x.test/v1", {}, {})
+                self.assertEqual((cm.exception.answered, cm.exception.retryable, cm.exception.status), (answered, retryable, status))
+        providers.urllib.request.urlopen = lambda req, timeout=0: Resp(b"{not json")
+        with self.assertRaises(providers.TransportError) as cm:
+            tr.post("https://x.test/v1", {}, {})
+        self.assertFalse(cm.exception.answered)
+        providers.urllib.request.urlopen = lambda req, timeout=0: Resp(b'{"ok": 1}')
+        self.assertEqual(tr.post("https://x.test/v1", {}, {}), {"ok": 1})
+
+
 if __name__ == "__main__":
     unittest.main()
