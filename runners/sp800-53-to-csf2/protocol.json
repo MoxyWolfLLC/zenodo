@@ -278,6 +278,13 @@
         "source": "https://openai.com/api/pricing/ 2026-11-16"
       }
     },
+    "provider_caps": {
+      "anthropic": 12.0,
+      "google": 8.0,
+      "openai": 20.0,
+      "openrouter": 20.0
+    },
+    "provider_caps_source": "GOAL.md, Provider budgets",
     "r": 5,
     "reserve_rule": "inside the cap; released only in the deliverables phase",
     "reserve_usd": 10.0,

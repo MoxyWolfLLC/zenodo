@@ -22,6 +22,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 CAP, RESERVE = 60.0, 10.0
+PROVIDER_CAPS = {"openai": 20.0, "anthropic": 12.0, "google": 8.0, "openrouter": 20.0}   # GOAL.md, Provider budgets
 K = 8                      # retrieval cut-off, fixed, never tuned
 R = 5                      # missed-link draws per unit from outside the retrieved top-k
 TARGET_UNITS = (300, 400)  # exact sample size falls inside this range
@@ -231,7 +232,12 @@ def budget(n_units, n_by_split, hub_count):
     for l in lines:   # accumulate at full precision, round once (review F2)
         by_provider[l["provider"]] = by_provider.get(l["provider"], 0) + calls_usd(l)
     by_provider = {k: round(v, 2) for k, v in by_provider.items()}
+    for p, cap in PROVIDER_CAPS.items():
+        if by_provider.get(p, 0) > cap:
+            print(f"budget for {p} {by_provider[p]} exceeds its cap {cap}", file=sys.stderr)
+            sys.exit(4)
     return {"cap_usd": CAP, "reserve_usd": RESERVE, "reserve_rule": "inside the cap; released only in the deliverables phase",
+            "provider_caps": PROVIDER_CAPS, "provider_caps_source": "GOAL.md, Provider budgets",
             "k": K, "r": R, "voices": VOICES, "lines": lines, "total_usd": total, "total_with_reserve_usd": round(total + RESERVE, 2),
             "by_provider_usd": by_provider, "prices": PRICES, "price_source": PRICE_SOURCE}
 

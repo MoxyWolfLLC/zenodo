@@ -5,16 +5,23 @@ One entry point for every model call the runner makes: OpenAI (extraction, propo
 Anthropic and Google called directly, Mistral through OpenRouter (the three voters), and the council
 (three voices, the same adapter, majority ruling, the pattern /council:deliberate uses). Every call
 records the per-stage question and evidence identities, token usage and provider-reported cost where
-the response carries it, in accounting.jsonl. The guard refuses a call whose maximum expected charge
-(token ceiling times unit price, from protocol.json) exceeds the remaining allowance:
-cap - spend - reserve, the reserve released only when phase is "deliverables".
+the response carries it, in accounting.jsonl. The guard refuses, before any request leaves, a call whose
+maximum expected charge (token ceiling times unit price) exceeds the remaining allowance, which is the
+smaller of the global allowance (cap - spend - reserve, the reserve released only when the phase is
+"deliverables") and the provider's allowance (its cap - its spend). Money is exact (Decimal); nothing is
+rounded on the way to the ledger.
+
+events.jsonl records call_started before a transport is invoked, fixture transports included, and
+outbound_attempt for every attempt replay mode refuses.
 
 Stdlib only. Keys come from the files GSTACK_OPENAI_ENV, GSTACK_ANTHROPIC_ENV, GSTACK_GEMINI_ENV and
 GSTACK_OPENROUTER_ENV name (the vault's <provider>.env), or from the environment.
 
-Exit codes for a pass that uses this adapter: 4 after a refused call (BudgetRefused), 5 on an outbound
-attempt in replay mode (ReplayViolation). A refused call prints `refused: budget <remaining>` to stderr,
-appends an accounting row with refused: true and evidence "refused" (zero cost), and returns no output.
+Exit codes for a pass that uses this adapter (run_pass): 4 after a refused call, 5 on an outbound
+attempt in replay mode. A refused call prints exactly `refused: budget <remaining>` to stderr, appends a
+zero-cost accounting row with refused: true and evidence "refused", and returns no output.
+
+    python3 -I providers.py probe     one real embedding call through run_pass, the smallest calling pass
 """
 import hashlib
 import json
@@ -23,12 +30,15 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from decimal import Decimal
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROTOCOL = os.path.join(HERE, "protocol.json")
 ACCOUNTING = os.environ.get("GSTACK_ACCOUNTING") or os.path.join(HERE, "accounting.jsonl")
+EVENTS = os.environ.get("GSTACK_EVENTS") or os.path.join(HERE, "events.jsonl")
 STATE = os.environ.get("GSTACK_RUN_STATE") or os.path.join(HERE, "run_state.json")
 REQUEST_OVERHEAD = 16      # tokens a chat request spends on role framing
+MILLION = Decimal(1_000_000)
 
 PROMPT_VERSIONS = {"extraction": "extract-v1", "proposal": "propose-v1", "vote": "vote-v1", "council": "council-v1"}
 
@@ -54,6 +64,19 @@ class BudgetRefused(Exception):
     token ceiling. The calling pass exits 4 (run_pass)."""
 
 
+class ReplayViolation(Exception):
+    """An outbound call was attempted in replay mode. The calling pass exits 5 (run_pass)."""
+
+
+def D(value):
+    return value if isinstance(value, Decimal) else Decimal(str(value))
+
+
+def money(value):
+    """Exact decimal text for a ledger field; never a float."""
+    return format(D(value).normalize(), "f") if D(value) != 0 else "0"
+
+
 def token_bound(text):
     """An upper bound, not an estimate: a byte-level BPE token covers at least one byte, so the UTF-8 byte
     length plus the request overhead is never below the tokens a provider will count."""
@@ -71,11 +94,7 @@ def run_pass(fn):
     return 0
 
 
-class ReplayViolation(Exception):
-    pass
-
-
-def _env_key(name, env_var, file_var):
+def _env_key(name, file_var):
     if os.environ.get(name):
         return os.environ[name]
     path = os.environ.get(file_var)
@@ -89,10 +108,10 @@ def _env_key(name, env_var, file_var):
 
 
 KEYS = {
-    "openai": lambda: _env_key("OPENAI_API_KEY", "OPENAI_API_KEY", "GSTACK_OPENAI_ENV"),
-    "anthropic": lambda: _env_key("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY", "GSTACK_ANTHROPIC_ENV"),
-    "google": lambda: _env_key("GOOGLE_GEMINI_API_KEY", "GOOGLE_GEMINI_API_KEY", "GSTACK_GEMINI_ENV"),
-    "openrouter": lambda: _env_key("OPENROUTER_API_KEY", "OPENROUTER_API_KEY", "GSTACK_OPENROUTER_ENV"),
+    "openai": lambda: _env_key("OPENAI_API_KEY", "GSTACK_OPENAI_ENV"),
+    "anthropic": lambda: _env_key("ANTHROPIC_API_KEY", "GSTACK_ANTHROPIC_ENV"),
+    "google": lambda: _env_key("GOOGLE_GEMINI_API_KEY", "GSTACK_GEMINI_ENV"),
+    "openrouter": lambda: _env_key("OPENROUTER_API_KEY", "GSTACK_OPENROUTER_ENV"),
 }
 
 
@@ -103,7 +122,8 @@ def identity(stage, **fields):
 
 
 class Transport:
-    """Real HTTP. Tests replace it with a stub; replay mode replaces it with a refuser."""
+    """Real HTTP. Tests and the fixture harness replace it; replay mode replaces it with a refuser."""
+    kind = "live"
 
     def post(self, url, headers, body, timeout=120):
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", **headers})
@@ -115,6 +135,8 @@ class Transport:
 
 
 class ReplayTransport:
+    kind = "replay"
+
     def __init__(self, counter):
         self.counter = counter
 
@@ -124,29 +146,32 @@ class ReplayTransport:
 
 
 class Adapter:
-    def __init__(self, protocol=None, transport=None, accounting=ACCOUNTING, state=STATE, replay=False):
+    def __init__(self, protocol=None, transport=None, accounting=ACCOUNTING, state=STATE, events=EVENTS, replay=False):
         if protocol is None:
             with open(PROTOCOL, encoding="utf-8") as f:
                 protocol = json.load(f)
         self.protocol = protocol
-        self.prices = self.protocol["budget"]["prices"]
-        self.cap = float(self.protocol["budget"]["cap_usd"])
-        self.reserve = float(self.protocol["budget"]["reserve_usd"])
-        self.roles = self.protocol["roles"]
-        self.accounting = accounting
-        self.state_path = state
+        b = protocol["budget"]
+        self.prices = {m: {"in": D(p["in"]), "out": D(p["out"]), "provider": p["provider"]} for m, p in b["prices"].items()}
+        self.cap, self.reserve = D(b["cap_usd"]), D(b["reserve_usd"])
+        self.provider_caps = {k: D(v) for k, v in b.get("provider_caps", {}).items()}
+        self.roles = protocol["roles"]
+        self.accounting, self.state_path, self.events = accounting, state, events
         self.replay_counter = {}
         self.transport = ReplayTransport(self.replay_counter) if replay else (transport or Transport())
 
     # ---- budget -------------------------------------------------------------------------------
     def spend(self):
-        total = 0.0
+        total, by_provider = Decimal(0), {}
         if os.path.isfile(self.accounting):
             with open(self.accounting, encoding="utf-8") as f:
                 for line in f:
                     if line.strip():
-                        total += float(json.loads(line).get("usd", 0))
-        return total
+                        row = json.loads(line)
+                        usd = D(row.get("charged_usd", row.get("usd", 0)))
+                        total += usd
+                        by_provider[row.get("provider")] = by_provider.get(row.get("provider"), Decimal(0)) + usd
+        return total, by_provider
 
     def phase(self):
         if os.path.isfile(self.state_path):
@@ -154,63 +179,34 @@ class Adapter:
                 return json.load(f).get("phase", "run")
         return "run"
 
-    def remaining(self):
-        held = 0.0 if self.phase() == "deliverables" else self.reserve
-        return self.cap - self.spend() - held
+    def remaining(self, provider=None):
+        total, by_provider = self.spend()
+        held = Decimal(0) if self.phase() == "deliverables" else self.reserve
+        remaining = self.cap - total - held
+        if provider in self.provider_caps:
+            remaining = min(remaining, self.provider_caps[provider] - by_provider.get(provider, Decimal(0)))
+        return remaining
 
     def max_charge(self, model, tokens_in, tokens_out):
         p = self.prices[model]
-        return (tokens_in * p["in"] + tokens_out * p["out"]) / 1e6
+        return (D(tokens_in) * p["in"] + D(tokens_out) * p["out"]) / MILLION
 
     def ceilings(self, role):
         r = self.roles[role]
         return r["in"], r["out"]
 
-    # ---- accounting ---------------------------------------------------------------------------
+    # ---- records ------------------------------------------------------------------------------
     def record(self, row):
         row = {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "phase": self.phase(), **row}
         with open(self.accounting, "a", encoding="utf-8") as f:
             f.write(json.dumps(row, sort_keys=True) + "\n")
         return row
 
-    # ---- the one call -------------------------------------------------------------------------
-    def call(self, role, model, prompt_version, prompt, question_identity, evidence_identity, json_out=True):
-        tin, tout = self.ceilings(role)
-        provider = self.prices[model]["provider"]
-        charge = self.max_charge(model, tin, tout)
-        remaining = self.remaining()
-        base = {"stage": role, "provider": provider, "model": model, "prompt_version": prompt_version,
-                "question_identity": question_identity, "evidence_identity": evidence_identity}
-        self._guard(base, charge, remaining, token_bound(prompt), tin)
-        text, usage, reported = self._dispatch(provider, model, prompt, tin, tout)
-        tokens_in, tokens_out = usage.get("in"), usage.get("out")
-        if reported is not None:
-            usd, evidence = float(reported), "provider_reported"
-        elif tokens_in is not None and tokens_out is not None:
-            usd, evidence = self.max_charge(model, tokens_in, tokens_out), "usage_priced"
-        else:
-            usd, evidence = charge, "unpriced"
-        self.record({**base, "refused": False, "evidence": evidence, "usd": round(usd, 6),
-                     "tokens_in": tokens_in, "tokens_out": tokens_out, "max_charge": round(charge, 6)})
-        return self._parse(text) if json_out else text
-
-    def embed(self, model, text, question_identity):
-        tin, tout = self.ceilings("embedding")
-        provider = self.prices[model]["provider"]
-        charge = self.max_charge(model, tin, tout)
-        remaining = self.remaining()
-        base = {"stage": "embedding", "provider": provider, "model": model, "prompt_version": None,
-                "question_identity": question_identity, "evidence_identity": None}
-        self._guard(base, charge, remaining, token_bound(text), tin)
-        r = self.transport.post("https://api.openai.com/v1/embeddings",
-                                {"Authorization": f"Bearer {KEYS['openai']()}"},
-                                {"model": model.split("/", 1)[1], "input": text})
-        vec = r["data"][0]["embedding"]
-        tokens = (r.get("usage") or {}).get("prompt_tokens")
-        usd = self.max_charge(model, tokens, 0) if tokens is not None else charge
-        self.record({**base, "refused": False, "evidence": "usage_priced" if tokens is not None else "unpriced",
-                     "usd": round(usd, 6), "tokens_in": tokens, "tokens_out": 0, "max_charge": round(charge, 6)})
-        return vec
+    def event(self, name, **fields):
+        row = {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "event": name, **fields}
+        with open(self.events, "a", encoding="utf-8") as f:
+            f.write(json.dumps(row, sort_keys=True) + "\n")
+        return row
 
     def _guard(self, base, charge, remaining, estimated_in, tin):
         """Refuse before any request leaves: over the allowance, or an input past its ceiling (the ceiling is
@@ -221,44 +217,109 @@ class Adapter:
         elif estimated_in > tin:
             reason = f"input bound {estimated_in} tokens over ceiling {tin}"
         if reason:
-            print(f"refused: budget {remaining:.4f}", file=sys.stderr)   # exactly this line; the reason is on the row
-            self.record({**base, "refused": True, "refusal": reason, "evidence": "refused", "usd": 0.0,
-                         "tokens_in": 0, "tokens_out": 0, "max_charge": round(charge, 6)})
+            print(f"refused: budget {money(remaining)}", file=sys.stderr)   # exactly this line; the reason is on the row
+            self.record({**base, "refused": True, "refusal": reason, "evidence": "refused", "charged_usd": "0",
+                         "tokens_in": 0, "tokens_out": 0, "max_expected_charge_usd": money(charge), "remaining_usd": money(remaining)})
             raise BudgetRefused(reason)
 
+    def _settle(self, base, charge, remaining, usage, reported):
+        """Price the completed request from what it carried, and record it before anything else is read."""
+        tokens_in, tokens_out = usage.get("in"), usage.get("out")
+        if reported is not None:
+            usd, evidence = D(reported), "provider_reported"
+        elif tokens_in is not None and tokens_out is not None:
+            usd, evidence = self.max_charge(base["model"], tokens_in, tokens_out), "usage_priced"
+        else:
+            usd, evidence = charge, "unpriced"
+        self.record({**base, "refused": False, "evidence": evidence, "charged_usd": money(usd),
+                     "tokens_in": tokens_in, "tokens_out": tokens_out,
+                     "max_expected_charge_usd": money(charge), "remaining_usd": money(remaining)})
+        return usd
+
+    # ---- the one call -------------------------------------------------------------------------
+    def call(self, role, model, prompt_version, prompt, question_identity, evidence_identity, json_out=True, **context):
+        tin, tout = self.ceilings(role)
+        provider = self.prices[model]["provider"]
+        charge = self.max_charge(model, tin, tout)
+        remaining = self.remaining(provider)
+        base = {"stage": role, "provider": provider, "model": model, "prompt_version": prompt_version,
+                "question_identity": question_identity, "evidence_identity": evidence_identity, **context}
+        self._guard(base, charge, remaining, token_bound(prompt), tin)
+        self.event("call_started", role="council" if role == "council" else "model", stage=role, provider=provider,
+                   model=model, transport=self.transport.kind, question_identity=question_identity["id"],
+                   protocol_sha256=self.protocol.get("sha256"), **context)
+        try:
+            raw = self._send(provider, model, prompt, tout)
+        except ReplayViolation:
+            self.event("outbound_attempt", role="council" if role == "council" else "model", stage=role, provider=provider)
+            raise
+        usage, reported = self._usage(provider, raw)
+        self._settle(base, charge, remaining, usage, reported)   # the request completed: it is on the ledger before parsing
+        text = self._content(provider, raw)
+        return self._parse(text) if json_out else text
+
+    def embed(self, model, text, question_identity, **context):
+        tin, tout = self.ceilings("embedding")
+        provider = self.prices[model]["provider"]
+        charge = self.max_charge(model, tin, tout)
+        remaining = self.remaining(provider)
+        base = {"stage": "embedding", "provider": provider, "model": model, "prompt_version": None,
+                "question_identity": question_identity, "evidence_identity": None, **context}
+        self._guard(base, charge, remaining, token_bound(text), tin)
+        self.event("call_started", role="retriever", stage="embedding", provider=provider, model=model,
+                   transport=self.transport.kind, question_identity=question_identity["id"],
+                   protocol_sha256=self.protocol.get("sha256"), **context)
+        try:
+            raw = self.transport.post("https://api.openai.com/v1/embeddings", {"Authorization": f"Bearer {KEYS['openai']()}"},
+                                      {"model": model.split("/", 1)[1], "input": text})
+        except ReplayViolation:
+            self.event("outbound_attempt", role="retriever", stage="embedding", provider=provider)
+            raise
+        tokens = (raw.get("usage") or {}).get("prompt_tokens")
+        self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
+        return raw["data"][0]["embedding"]
+
     # ---- providers ----------------------------------------------------------------------------
-    def _dispatch(self, provider, model, prompt, tin, tout):
+    def _send(self, provider, model, prompt, tout):
         name = model.split("/", 1)[1]
         if provider == "openai":
-            r = self.transport.post("https://api.openai.com/v1/chat/completions",
-                                    {"Authorization": f"Bearer {KEYS['openai']()}"},
-                                    {"model": name, "messages": [{"role": "user", "content": prompt}],
-                                     "max_completion_tokens": tout, "temperature": 0})
-            u = r.get("usage") or {}
-            return r["choices"][0]["message"]["content"], {"in": u.get("prompt_tokens"), "out": u.get("completion_tokens")}, None
+            return self.transport.post("https://api.openai.com/v1/chat/completions", {"Authorization": f"Bearer {KEYS['openai']()}"},
+                                       {"model": name, "messages": [{"role": "user", "content": prompt}],
+                                        "max_completion_tokens": tout, "temperature": 0})
         if provider == "anthropic":
-            r = self.transport.post("https://api.anthropic.com/v1/messages",
-                                    {"x-api-key": KEYS["anthropic"](), "anthropic-version": "2023-06-01"},
-                                    {"model": name, "max_tokens": tout, "temperature": 0,
-                                     "messages": [{"role": "user", "content": prompt}]})
-            u = r.get("usage") or {}
-            return "".join(b.get("text", "") for b in r["content"]), {"in": u.get("input_tokens"), "out": u.get("output_tokens")}, None
+            return self.transport.post("https://api.anthropic.com/v1/messages",
+                                       {"x-api-key": KEYS["anthropic"](), "anthropic-version": "2023-06-01"},
+                                       {"model": name, "max_tokens": tout, "temperature": 0,
+                                        "messages": [{"role": "user", "content": prompt}]})
         if provider == "google":
-            r = self.transport.post(f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent",
-                                    {"x-goog-api-key": KEYS["google"]()},
-                                    {"contents": [{"parts": [{"text": prompt}]}],
-                                     "generationConfig": {"maxOutputTokens": tout, "temperature": 0}})
-            u = r.get("usageMetadata") or {}
-            text = "".join(p.get("text", "") for p in r["candidates"][0]["content"]["parts"])
-            return text, {"in": u.get("promptTokenCount"), "out": u.get("candidatesTokenCount")}, None
+            return self.transport.post(f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent",
+                                       {"x-goog-api-key": KEYS["google"]()},
+                                       {"contents": [{"parts": [{"text": prompt}]}],
+                                        "generationConfig": {"maxOutputTokens": tout, "temperature": 0}})
         if provider == "openrouter":
-            r = self.transport.post("https://openrouter.ai/api/v1/chat/completions",
-                                    {"Authorization": f"Bearer {KEYS['openrouter']()}"},
-                                    {"model": model, "messages": [{"role": "user", "content": prompt}],
-                                     "max_tokens": tout, "temperature": 0, "usage": {"include": True}})
-            u = r.get("usage") or {}
-            return r["choices"][0]["message"]["content"], {"in": u.get("prompt_tokens"), "out": u.get("completion_tokens")}, u.get("cost")
+            return self.transport.post("https://openrouter.ai/api/v1/chat/completions", {"Authorization": f"Bearer {KEYS['openrouter']()}"},
+                                       {"model": model, "messages": [{"role": "user", "content": prompt}],
+                                        "max_tokens": tout, "temperature": 0, "usage": {"include": True}})
         raise ValueError(provider)
+
+    @staticmethod
+    def _usage(provider, raw):
+        """Usage and reported cost, read before any content is touched."""
+        if provider == "google":
+            u = raw.get("usageMetadata") or {}
+            return {"in": u.get("promptTokenCount"), "out": u.get("candidatesTokenCount")}, None
+        u = raw.get("usage") or {}
+        if provider == "anthropic":
+            return {"in": u.get("input_tokens"), "out": u.get("output_tokens")}, None
+        return {"in": u.get("prompt_tokens"), "out": u.get("completion_tokens")}, (u.get("cost") if provider == "openrouter" else None)
+
+    @staticmethod
+    def _content(provider, raw):
+        if provider == "anthropic":
+            return "".join(b.get("text", "") for b in raw["content"])
+        if provider == "google":
+            return "".join(p.get("text", "") for p in raw["candidates"][0]["content"]["parts"])
+        return raw["choices"][0]["message"]["content"]
 
     @staticmethod
     def _parse(text):
@@ -273,12 +334,12 @@ class Adapter:
             return {"parse_error": True, "raw": text[:500]}
 
     # ---- the council --------------------------------------------------------------------------
-    def council(self, packet, question_identity, evidence_identity):
+    def council(self, packet, question_identity, evidence_identity, **context):
         """Three voices, each its own call; majority on the level; a three-way split rules the null with reason split."""
         votes = []
         for m in self.roles["council"]["models"]:
             out = self.call("council", m, PROMPT_VERSIONS["council"], render("council", **packet),
-                            question_identity, evidence_identity)
+                            question_identity, evidence_identity, **context)
             votes.append({"model": m, "level": out.get("level"), "reason": out.get("reason")})
         levels = [v["level"] for v in votes]
         winner = max(set(levels), key=levels.count)
@@ -292,8 +353,7 @@ def render(stage, **fields):
 
 
 def probe():
-    """One real embedding call through the adapter and run_pass: the smallest calling pass, so the
-    refusal-to-exit-4 path is a recorded fact, not a declaration."""
+    """One real embedding call through the adapter and run_pass: the smallest calling pass."""
     a = Adapter()
     vec = a.embed(a.roles["embedding"]["model"], "probe", identity("embedding", probe=True))
     print(f"probe ok dim {len(vec)}")
