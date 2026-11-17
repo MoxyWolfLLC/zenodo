@@ -96,7 +96,8 @@ class AdapterTests(unittest.TestCase):
         with open(self.acc, "w") as f:
             f.write(json.dumps({"usd": 50.0}) + "\n")
         self.assertLess(self.a.remaining(), 0.001)
-        json.dump({"phase": "deliverables"}, open(self.state, "w"))
+        with open(self.state, "w") as f:
+            json.dump({"phase": "deliverables"}, f)
         self.assertAlmostEqual(self.a.remaining(), 10.0)
         self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
         self.assertEqual(self.rows()[-1]["phase"], "deliverables")
@@ -122,6 +123,29 @@ class AdapterTests(unittest.TestCase):
         self.stub.answers["openrouter.ai"] = {"choices": [{"message": {"content": '{"level": "superset_of"}'}}], "usage": {"cost": 0.0001}}
         out = self.a.council(packet, self.q, "e1")
         self.assertEqual(out["level"], "no_relationship"); self.assertEqual(out["reason"], "split")
+
+    def test_every_template_renders_and_an_oversized_input_is_refused_before_dispatch(self):
+        for stage, fields in (("extraction", dict(unit_id="ac-1", unit_text="t")),
+                              ("proposal", dict(unit_id="ac-1", activities="a", hub_id="GV.OC-01", hub_text="h", levels="l", null="n")),
+                              ("vote", dict(unit_id="ac-1", hub_id="GV.OC-01", level="equal", quotes="q", unit_text="t", hub_text="h", levels="l", null="n")),
+                              ("council", dict(rubric="r", unit_id="ac-1", unit_text="t", context="c", hub_id="GV.OC-01", hub_text="h", levels="l", null="n"))):
+            self.assertIn("ac-1", providers.render(stage, **fields))
+        err = io.StringIO()
+        with redirect_stderr(err), self.assertRaises(providers.BudgetRefused):
+            self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "x" * 3 * 1600, self.q, "e1")
+        self.assertIn("over ceiling", err.getvalue()); self.assertEqual(len(self.stub.requests), 0)
+        self.assertEqual(self.rows()[-1]["evidence"], "refused")
+        with redirect_stderr(io.StringIO()), self.assertRaises(providers.BudgetRefused):
+            self.a.embed("openai/text-embedding-3-small", "y" * 3 * 500, self.q)
+        self.assertEqual(len(self.stub.requests), 0)
+
+    def test_run_pass_maps_refusals_to_exit_codes(self):
+        def refused():
+            raise providers.BudgetRefused("x")
+        def replay():
+            raise providers.ReplayViolation("y")
+        self.assertEqual(providers.run_pass(refused), 4); self.assertEqual(providers.run_pass(replay), 5)
+        self.assertEqual(providers.run_pass(lambda: None), 0)
 
     def test_identity_is_order_independent_and_stage_bound(self):
         a = providers.identity("vote", b=1, a=2); b = providers.identity("vote", a=2, b=1)

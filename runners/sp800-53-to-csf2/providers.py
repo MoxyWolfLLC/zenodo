@@ -26,14 +26,16 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROTOCOL = os.path.join(HERE, "protocol.json")
-ACCOUNTING = os.path.join(HERE, "accounting.jsonl")
-STATE = os.path.join(HERE, "run_state.json")
+ACCOUNTING = os.environ.get("GSTACK_ACCOUNTING") or os.path.join(HERE, "accounting.jsonl")
+STATE = os.environ.get("GSTACK_RUN_STATE") or os.path.join(HERE, "run_state.json")
+CHARS_PER_TOKEN = 3        # conservative: English prose runs near 4 chars per token, so 3 overstates
+REQUEST_OVERHEAD = 16      # tokens a chat request spends on role framing
 
 PROMPT_VERSIONS = {"extraction": "extract-v1", "proposal": "propose-v1", "vote": "vote-v1", "council": "council-v1"}
 
 PROMPTS = {
     "extract-v1": ("Extract the required activities from this SP 800-53 control statement. Return JSON "
-                   "{\"activities\": [short imperative phrases], \"quotes\": [verbatim spans from the statement]}.\n\n"
+                   "{{\"activities\": [short imperative phrases], \"quotes\": [verbatim spans from the statement]}}.\n\n"
                    "Control {unit_id}: {unit_text}"),
     "propose-v1": ("Unit {unit_id} (activities: {activities}).\nCandidate CSF 2.0 subcategory {hub_id}: {hub_text}\n"
                    "Propose the set-theory relationship from the unit's required activities to the subcategory's, one of "
@@ -49,7 +51,23 @@ PROMPTS = {
 
 
 class BudgetRefused(Exception):
-    pass
+    """The guard refused: the ceiling charge exceeds the remaining allowance, or the input exceeds its
+    token ceiling. The calling pass exits 4 (run_pass)."""
+
+
+def estimate_tokens(text):
+    return -(-len(text) // CHARS_PER_TOKEN) + REQUEST_OVERHEAD
+
+
+def run_pass(fn):
+    """Run a pass body; map the adapter's refusals to the plan's exit codes: 4 budget, 5 replay."""
+    try:
+        fn()
+    except BudgetRefused:
+        return 4
+    except ReplayViolation:
+        return 5
+    return 0
 
 
 class ReplayViolation(Exception):
@@ -162,11 +180,7 @@ class Adapter:
         remaining = self.remaining()
         base = {"stage": role, "provider": provider, "model": model, "prompt_version": prompt_version,
                 "question_identity": question_identity, "evidence_identity": evidence_identity}
-        if charge > remaining:
-            print(f"refused: budget {remaining:.4f}", file=sys.stderr)
-            self.record({**base, "refused": True, "evidence": "refused", "usd": 0.0, "tokens_in": 0, "tokens_out": 0,
-                         "max_charge": round(charge, 6)})
-            raise BudgetRefused(f"max charge {charge:.4f} exceeds remaining {remaining:.4f}")
+        self._guard(base, charge, remaining, estimate_tokens(prompt), tin)
         text, usage, reported = self._dispatch(provider, model, prompt, tin, tout)
         tokens_in, tokens_out = usage.get("in"), usage.get("out")
         if reported is not None:
@@ -186,20 +200,30 @@ class Adapter:
         remaining = self.remaining()
         base = {"stage": "embedding", "provider": provider, "model": model, "prompt_version": None,
                 "question_identity": question_identity, "evidence_identity": None}
-        if charge > remaining:
-            print(f"refused: budget {remaining:.4f}", file=sys.stderr)
-            self.record({**base, "refused": True, "evidence": "refused", "usd": 0.0, "tokens_in": 0, "tokens_out": 0,
-                         "max_charge": round(charge, 6)})
-            raise BudgetRefused("embedding refused")
+        self._guard(base, charge, remaining, estimate_tokens(text), tin)
         r = self.transport.post("https://api.openai.com/v1/embeddings",
                                 {"Authorization": f"Bearer {KEYS['openai']()}"},
-                                {"model": model.split("/", 1)[1], "input": text[: tin * 4]})
+                                {"model": model.split("/", 1)[1], "input": text})
         vec = r["data"][0]["embedding"]
         tokens = (r.get("usage") or {}).get("prompt_tokens")
         usd = self.max_charge(model, tokens, 0) if tokens is not None else charge
         self.record({**base, "refused": False, "evidence": "usage_priced" if tokens is not None else "unpriced",
                      "usd": round(usd, 6), "tokens_in": tokens, "tokens_out": 0, "max_charge": round(charge, 6)})
         return vec
+
+    def _guard(self, base, charge, remaining, estimated_in, tin):
+        """Refuse before any request leaves: over the allowance, or an input past its ceiling (the ceiling is
+        what the charge was priced on, so an oversized input is never sent and never charged)."""
+        reason = None
+        if charge > remaining:
+            reason = f"budget {remaining:.4f}"
+        elif estimated_in > tin:
+            reason = f"input {estimated_in} tokens over ceiling {tin}"
+        if reason:
+            print(f"refused: {reason}", file=sys.stderr)
+            self.record({**base, "refused": True, "refusal": reason, "evidence": "refused", "usd": 0.0,
+                         "tokens_in": 0, "tokens_out": 0, "max_charge": round(charge, 6)})
+            raise BudgetRefused(reason)
 
     # ---- providers ----------------------------------------------------------------------------
     def _dispatch(self, provider, model, prompt, tin, tout):
@@ -266,5 +290,15 @@ def render(stage, **fields):
     return PROMPTS[PROMPT_VERSIONS[stage]].format(**fields)
 
 
+def probe():
+    """One real embedding call through the adapter and run_pass: the smallest calling pass, so the
+    refusal-to-exit-4 path is a recorded fact, not a declaration."""
+    a = Adapter()
+    vec = a.embed(a.roles["embedding"]["model"], "probe", identity("embedding", probe=True))
+    print(f"probe ok dim {len(vec)}")
+
+
 if __name__ == "__main__":
+    if sys.argv[1:] == ["probe"]:
+        sys.exit(run_pass(probe))
     print(__doc__)
