@@ -1,0 +1,74 @@
+{
+  "retrieved": "2026-11-16",
+  "files": {
+    "sp800-53r5_catalog.json": {
+      "url": "https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json",
+      "what": "SP 800-53 Rev. 5 catalog, OSCAL JSON, usnistgov/oscal-content main",
+      "bytes": 10448237,
+      "sha256": "64ca6b4161de51ab6af098a7d101d326f14c95e1abf721396cd8a049e8115eeb",
+      "hash_basis": "file bytes",
+      "bytes_sha256": "64ca6b4161de51ab6af098a7d101d326f14c95e1abf721396cd8a049e8115eeb",
+      "retrieved": "2026-11-16"
+    },
+    "csf2_core_cprt.json": {
+      "url": "https://csrc.nist.gov/extensions/nudp/services/json/nudp/framework/version/csf_2_0_0/export/json?element=all",
+      "what": "CSF 2.0 core, CPRT JSON export: functions, categories, subcategories, implementation examples, and external_reference links to SP 800-53 families",
+      "bytes": 753380,
+      "sha256": "de36759d2f3f70a0f28ab9a95505259e568467923295a13d510a068939773e5a",
+      "hash_basis": "file bytes",
+      "bytes_sha256": "de36759d2f3f70a0f28ab9a95505259e568467923295a13d510a068939773e5a",
+      "retrieved": "2026-11-16"
+    },
+    "csf2_informative_references.xlsx": {
+      "url": "https://csrc.nist.gov/extensions/nudp/services/json/csf/download?olirids=all",
+      "what": "CSF 2.0 Reference Tool workbook: control-level informative references per subcategory (SP 800-53 Rev 5.1.1 and 5.2.0 among others)",
+      "bytes": 146546,
+      "sha256": "509cf571c4f34a20f6738f43a7204e8d3a16ff1ebe88ecc9c276498c2400ee09",
+      "hash_basis": "zip members except docProps/* and the cover sheet, which carry the generation time",
+      "bytes_sha256": "978a878f8da4fffac06f99fe6496abfd382a7dedf09e061f81483a47a294db63",
+      "retrieved": "2026-11-16"
+    }
+  },
+  "counts": {
+    "sp800_53": {
+      "title": "Electronic (OSCAL) Version of NIST SP 800-53 Rev 5.2.0 Controls and SP 800-53A Rev 5.2.0 Assessment Procedures",
+      "version": "5.2.0",
+      "last_modified": "2026-10-22T11:30:00.00000-00:00",
+      "active_base_controls": 300,
+      "active_enhancements": 714,
+      "withdrawn": 182
+    },
+    "csf2": {
+      "functions": 6,
+      "categories": 22,
+      "subcategories": 106
+    },
+    "references": {
+      "cprt_external_reference_family_level": 408,
+      "cprt_by_source_kind": {
+        "subcategory": 378,
+        "category": 30
+      },
+      "workbook_control_level_links": 1480,
+      "workbook_links_by_revision": {
+        "SP 800-53 Rev 5.1.1": 737,
+        "SP 800-53 Rev 5.2.0": 743
+      },
+      "workbook_links_by_csf_kind": {
+        "subcategory": 1468,
+        "category": 12
+      },
+      "workbook_links_on_withdrawn_subcategories": 0,
+      "workbook_distinct_control_strings": 418
+    }
+  },
+  "direction": "SP 800-53 unit -> CSF 2.0 subcategory",
+  "scale": [
+    "subset_of",
+    "intersects_with",
+    "equal",
+    "superset_of",
+    "no_relationship"
+  ],
+  "finding": "No pinned NIST source carries IR 8477 relationship types. The CPRT export's relationship types are projection, incorporated_into, moved_to, external_reference; the workbook lists references as bare identifiers. Every NIST reference is therefore an association, not a five-class label, under the frozen policy."
+}
