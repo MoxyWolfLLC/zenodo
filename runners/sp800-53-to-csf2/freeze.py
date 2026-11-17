@@ -33,19 +33,26 @@ DOUBLE_RULED_SHARE = 0.20
 ASSISTED_PAIRS = 30        # matched blind-versus-assisted council packets per split
 SS_AUDIT_PER_CARD = 30     # SS-scope and SS-retrieval outputs drawn per card, pooled per split
 
-# Unit prices in USD per million tokens, read from https://openrouter.ai/api/v1/models on 2026-11-16.
-# The embedding model is not listed there; its price is OpenAI's published one on the same day.
+# Unit prices in USD per million tokens, read from https://openrouter.ai/api/v1/models on 2026-11-16 and again
+# on 2026-11-17 (unchanged). The embedding model is not listed there; its price is OpenAI's published one.
+# "provider" is who bills the call and whose cap it draws on; "family" is the model's maker, the seat identity the
+# triad and the council independence rules read. They differ for Gemini: Google's direct API was unavailable on
+# 2026-11-17 (prepaid credits depleted) and Dorian directed the run to proceed without it, so both Gemini models
+# are reached through OpenRouter. PLAN.md item 0 says only Mistral is reached through OpenRouter; this is the
+# declared deviation, recorded in RESULT.md.
 PRICES = {
-    "openai/gpt-6-luna":            {"in": 0.100, "out": 0.500, "provider": "openai"},
-    "openai/text-embedding-3-small": {"in": 0.020, "out": 0.0,   "provider": "openai",
+    "openai/gpt-6-luna":            {"in": 0.100, "out": 0.500, "provider": "openai", "family": "openai"},
+    "openai/text-embedding-3-small": {"in": 0.020, "out": 0.0,   "provider": "openai", "family": "openai",
                                      "source": "https://openai.com/api/pricing/ 2026-11-16"},
-    "anthropic/claude-haiku-5.5":   {"in": 0.100, "out": 0.500, "provider": "anthropic"},
-    "google/gemini-2.5-flash-lite": {"in": 0.100, "out": 0.400, "provider": "google"},
-    "google/gemini-3.1-flash-lite": {"in": 0.250, "out": 1.500, "provider": "google"},
-    "mistralai/mistral-small-2603": {"in": 0.150, "out": 0.600, "provider": "openrouter"},
-    "mistralai/mistral-large-4-0":  {"in": 0.700, "out": 2.100, "provider": "openrouter"},
+    "anthropic/claude-haiku-5.5":   {"in": 0.100, "out": 0.500, "provider": "anthropic", "family": "anthropic"},
+    "google/gemini-2.5-flash-lite": {"in": 0.100, "out": 0.400, "provider": "openrouter", "family": "google"},
+    "mistralai/mistral-small-2603": {"in": 0.150, "out": 0.600, "provider": "openrouter", "family": "mistralai"},
+    "mistralai/mistral-large-4-0":  {"in": 0.700, "out": 2.100, "provider": "openrouter", "family": "mistralai"},
 }
-PRICE_SOURCE = "https://openrouter.ai/api/v1/models retrieved 2026-11-16; usd per 1e6 tokens"
+PRICE_SOURCE = "https://openrouter.ai/api/v1/models retrieved 2026-11-16, re-read 2026-11-17; usd per 1e6 tokens"
+ROUTING_NOTE = ("Gemini is reached through OpenRouter (Google's direct API unavailable 2026-11-17; Dorian's instruction); "
+                "the council's Google voice is gemini-2.5-flash-lite so the OpenRouter worst case stays under its $20 cap. "
+                "Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families.")
 
 ROLES = {
     # input ceilings are byte-length bounds (providers.token_bound): the longest control statement is 1,859 chars
@@ -54,7 +61,7 @@ ROLES = {
     "proposal":   {"model": "openai/gpt-6-luna", "in": 3000, "out": 200},
     "vote":       {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-small-2603"],
                    "in": 2800, "out": 150},
-    "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-3.1-flash-lite", "mistralai/mistral-large-4-0"],
+    "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-large-4-0"],
                    "in": 3200, "out": 250},
 }
 
@@ -294,7 +301,7 @@ def main(argv):
         "calibration": {"revisions_cap": CALIBRATION_REVISIONS, "tunes": ["prompt wording", "confidence threshold"],
                         "labels": "pinned NIST informative references for the calibration split, link versus no link only"},
         "ss_audit": {"per_card": SS_AUDIT_PER_CARD, "cards": ["SS-scope", "SS-retrieval"], "pooled_per_split": True, "selection": "selection_rules.ss_audit"},
-        "roles": ROLES, "budget": b,
+        "roles": ROLES, "budget": b, "routing_note": ROUTING_NOTE,
     }
     raw = json.dumps(protocol, indent=2, sort_keys=True).encode()
     open(os.path.join(HERE, "protocol.json"), "wb").write(raw)
