@@ -27,6 +27,7 @@ import hashlib
 import json
 import os
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -38,22 +39,32 @@ ACCOUNTING = os.environ.get("GSTACK_ACCOUNTING") or os.path.join(HERE, "accounti
 EVENTS = os.environ.get("GSTACK_EVENTS") or os.path.join(HERE, "events.jsonl")
 STATE = os.environ.get("GSTACK_RUN_STATE") or os.path.join(HERE, "run_state.json")
 REQUEST_OVERHEAD = 16      # tokens a chat request spends on role framing
+DECODING = {"openai": {"reasoning_effort": "none"}, "anthropic": {"thinking": {"type": "disabled"}}}
+WIRE_NAMES = {"anthropic/claude-haiku-5.5": "claude-haiku-5-5"}   # the protocol's id is the identity; this is the provider's spelling   # gpt-6-luna reasons into its output ceiling otherwise; recorded on every row
 MILLION = Decimal(1_000_000)
 
 PROMPT_VERSIONS = {"extraction": "extract-v1", "proposal": "propose-v1", "vote": "vote-v1", "council": "council-v1"}
+PROMPT_VARIANTS = {"proposal": ["propose-v1", "propose-v2"]}   # the wordings calibration may choose between
 
 PROMPTS = {
     "extract-v1": ("Extract the required activities from this SP 800-53 control statement. Return JSON "
                    "{{\"activities\": [short imperative phrases], \"quotes\": [verbatim spans from the statement]}}.\n\n"
                    "Control {unit_id}: {unit_text}"),
-    "propose-v1": ("Unit {unit_id} (activities: {activities}).\nCandidate CSF 2.0 subcategory {hub_id}: {hub_text}\n"
+    "propose-v1": ("Unit {unit_id} control statement: {unit_text}\nRequired activities extracted from it: {activities}\n"
+                   "Candidate CSF 2.0 subcategory {hub_id}: {hub_text}\n"
                    "Propose the set-theory relationship from the unit's required activities to the subcategory's, one of "
-                   "{levels} or {null}. Quote the verbatim spans of the control text that support it. Return JSON "
+                   "{levels} or {null}. Quote the verbatim spans of the control statement that support it. Return JSON "
                    "{{\"level\": ..., \"quotes\": [...], \"confidence\": 0..1}}."),
+    "propose-v2": ("You compare one SP 800-53 control with one CSF 2.0 subcategory.\nControl {unit_id} states: {unit_text}\n"
+                   "It requires these activities: {activities}\nSubcategory {hub_id} says: {hub_text}\nAnswer with the set-theory relationship "
+                   "from the control's required activities to the subcategory's outcome: {levels}, or {null} when the "
+                   "subcategory does not cover any of them. Copy the exact words of the control statement that carry each "
+                   "activity you rely on. Return JSON {{\"level\": ..., \"quotes\": [...], \"confidence\": 0..1}} and nothing else."),
     "vote-v1": ("A proposer rated unit {unit_id} against CSF 2.0 subcategory {hub_id} as {level} with these quotes: "
                 "{quotes}.\nUnit text: {unit_text}\nSubcategory text: {hub_text}\n"
                 "Vote: do the quotes appear verbatim in the unit text, and is {level} the right one of {levels} or {null}? "
-                "Return JSON {{\"vote\": one of those levels, \"quotes_verbatim\": true|false, \"confidence\": 0..1}}."),
+                "Return only the JSON object {{\"vote\": one of those levels, \"quotes_verbatim\": true|false, \"confidence\": 0..1}}, "
+                "with no words before or after it."),
     "council-v1": ("{rubric}\n\nUnit {unit_id}: {unit_text}\nContext: {context}\nCandidate subcategory {hub_id}: {hub_text}\n"
                    "Rule the relationship. Return JSON {{\"level\": one of {levels} or {null}, \"reason\": short}}."),
 }
@@ -110,6 +121,7 @@ def _env_key(name, file_var):
 KEYS = {
     "openai": lambda: _env_key("OPENAI_API_KEY", "GSTACK_OPENAI_ENV"),
     "anthropic": lambda: _env_key("ANTHROPIC_API_KEY", "GSTACK_ANTHROPIC_ENV"),
+    "anthropic_workspace": lambda: _env_key("ANTHROPIC_WORKSPACE_ID", "GSTACK_ANTHROPIC_ENV"),
     "google": lambda: _env_key("GOOGLE_GEMINI_API_KEY", "GSTACK_GEMINI_ENV"),
     "openrouter": lambda: _env_key("OPENROUTER_API_KEY", "GSTACK_OPENROUTER_ENV"),
 }
@@ -125,13 +137,25 @@ class Transport:
     """Real HTTP. Tests and the fixture harness replace it; replay mode replaces it with a refuser."""
     kind = "live"
 
+    RETRY = (429, 500, 502, 503, 504)   # ponytail: three tries with a short backoff; anything else is the caller's
+
     def post(self, url, headers, body, timeout=120):
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", **headers})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                return json.loads(r.read().decode())
-        except urllib.error.HTTPError as e:
-            raise RuntimeError(f"{url}: HTTP {e.code}: {e.read().decode()[:300]}")
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as r:
+                    return json.loads(r.read().decode())
+            except urllib.error.HTTPError as e:
+                detail = e.read().decode()[:300]
+                if e.code in self.RETRY and attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise RuntimeError(f"{url}: HTTP {e.code}: {detail}")
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
+                raise RuntimeError(f"{url}: {e}")
 
 
 class ReplayTransport:
@@ -162,9 +186,16 @@ class Adapter:
         self.accounting, self.state_path, self.events = accounting, state, events
         self.replay_counter = {}
         self.transport = ReplayTransport(self.replay_counter) if replay else (transport or Transport())
+        self._lock = threading.RLock()          # the guard and the ledger position are read and moved under it
+        self._cache = None                      # (file size, total, by_provider): the ledger re-read only when it moved
+        self._inflight = Decimal(0)             # ceiling charges of calls sent and not yet settled
 
     # ---- budget -------------------------------------------------------------------------------
     def spend(self):
+        size = os.path.getsize(self.accounting) if os.path.isfile(self.accounting) else 0
+        with self._lock:
+            if self._cache and self._cache[0] == size:
+                return self._cache[1], dict(self._cache[2])
         total, by_provider = Decimal(0), {}
         if os.path.isfile(self.accounting):
             with open(self.accounting, encoding="utf-8") as f:
@@ -176,6 +207,8 @@ class Adapter:
                         usd = D(row["charged_usd"])
                         total += usd
                         by_provider[row.get("provider")] = by_provider.get(row.get("provider"), Decimal(0)) + usd
+        with self._lock:
+            self._cache = (size, total, dict(by_provider))
         return total, by_provider
 
     def phase(self):
@@ -187,7 +220,7 @@ class Adapter:
     def remaining(self, provider=None):
         total, by_provider = self.spend()
         held = Decimal(0) if self.phase() == "deliverables" else self.reserve
-        remaining = self.cap - total - held
+        remaining = self.cap - total - held - self._inflight    # a call in flight holds its ceiling until it settles
         if provider in self.provider_caps:
             remaining = min(remaining, self.provider_caps[provider] - by_provider.get(provider, Decimal(0)))
         return remaining
@@ -203,14 +236,20 @@ class Adapter:
     # ---- records ------------------------------------------------------------------------------
     def record(self, row):
         row = {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "phase": self.phase(), **row}
-        with open(self.accounting, "a", encoding="utf-8") as f:
-            f.write(json.dumps(row, sort_keys=True) + "\n")
+        with self._lock:
+            with open(self.accounting, "a", encoding="utf-8") as f:
+                f.write(json.dumps(row, sort_keys=True) + "\n")
+            if self._cache:
+                usd = D(row.get("charged_usd", "0"))
+                by = dict(self._cache[2]); by[row.get("provider")] = by.get(row.get("provider"), Decimal(0)) + usd
+                self._cache = (os.path.getsize(self.accounting), self._cache[1] + usd, by)
         return row
 
     def event(self, name, **fields):
         row = {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "event": name, **fields}
-        with open(self.events, "a", encoding="utf-8") as f:
-            f.write(json.dumps(row, sort_keys=True) + "\n")
+        with self._lock:
+            with open(self.events, "a", encoding="utf-8") as f:
+                f.write(json.dumps(row, sort_keys=True) + "\n")
         return row
 
     def _guard(self, base, charge, remaining, estimated_in, tin):
@@ -246,20 +285,27 @@ class Adapter:
         tin, tout = self.ceilings(role)
         provider = self.prices[model]["provider"]
         charge = self.max_charge(model, tin, tout)
-        remaining = self.remaining(provider)
         base = {"stage": role, "provider": provider, "model": model, "prompt_version": prompt_version,
-                "question_identity": question_identity, "evidence_identity": evidence_identity, **context}
-        self._guard(base, charge, remaining, token_bound(prompt), tin)
-        self.event("call_started", role="council" if role == "council" else "model", stage=role, provider=provider,
-                   model=model, transport=self.transport.kind, question_identity=question_identity["id"],
-                   protocol_sha256=self.protocol_sha256, **context)
+                "question_identity": question_identity, "evidence_identity": evidence_identity,
+                "decoding": DECODING.get(provider, {}), **context}
+        with self._lock:
+            remaining = self.remaining(provider)
+            self._guard(base, charge, remaining, token_bound(prompt), tin)
+            self._inflight += charge
         try:
-            raw = self._send(provider, model, prompt, tout)
-        except ReplayViolation:
-            self.event("outbound_attempt", role="council" if role == "council" else "model", stage=role, provider=provider)
-            raise
-        usage, reported = self._usage(provider, raw)
-        self._settle(base, charge, remaining, usage, reported)   # the request completed: it is on the ledger before parsing
+            self.event("call_started", role="council" if role == "council" else "model", stage=role, provider=provider,
+                       model=model, transport=self.transport.kind, question_identity=question_identity["id"],
+                       protocol_sha256=self.protocol_sha256, **context)
+            try:
+                raw = self._send(provider, model, prompt, tout)
+            except ReplayViolation:
+                self.event("outbound_attempt", role="council" if role == "council" else "model", stage=role, provider=provider)
+                raise
+            usage, reported = self._usage(provider, raw)
+            self._settle(base, charge, remaining, usage, reported)   # the request completed: it is on the ledger before parsing
+        finally:
+            with self._lock:
+                self._inflight -= charge
         text = self._content(provider, raw)
         return self._parse(text) if json_out else text
 
@@ -267,34 +313,41 @@ class Adapter:
         tin, tout = self.ceilings("embedding")
         provider = self.prices[model]["provider"]
         charge = self.max_charge(model, tin, tout)
-        remaining = self.remaining(provider)
         base = {"stage": "embedding", "provider": provider, "model": model, "prompt_version": None,
                 "question_identity": question_identity, "evidence_identity": None, **context}
-        self._guard(base, charge, remaining, token_bound(text), tin)
-        self.event("call_started", role="retriever", stage="embedding", provider=provider, model=model,
-                   transport=self.transport.kind, question_identity=question_identity["id"],
-                   protocol_sha256=self.protocol_sha256, **context)
+        with self._lock:
+            remaining = self.remaining(provider)
+            self._guard(base, charge, remaining, token_bound(text), tin)
+            self._inflight += charge
         try:
-            raw = self.transport.post("https://api.openai.com/v1/embeddings", {"Authorization": f"Bearer {KEYS['openai']()}"},
-                                      {"model": model.split("/", 1)[1], "input": text})
-        except ReplayViolation:
-            self.event("outbound_attempt", role="retriever", stage="embedding", provider=provider)
-            raise
-        tokens = (raw.get("usage") or {}).get("prompt_tokens")
-        self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
+            self.event("call_started", role="retriever", stage="embedding", provider=provider, model=model,
+                       transport=self.transport.kind, question_identity=question_identity["id"],
+                       protocol_sha256=self.protocol_sha256, **context)
+            try:
+                raw = self.transport.post("https://api.openai.com/v1/embeddings", {"Authorization": f"Bearer {KEYS['openai']()}"},
+                                          {"model": model.split("/", 1)[1], "input": text})
+            except ReplayViolation:
+                self.event("outbound_attempt", role="retriever", stage="embedding", provider=provider)
+                raise
+            tokens = (raw.get("usage") or {}).get("prompt_tokens")
+            self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
+        finally:
+            with self._lock:
+                self._inflight -= charge
         return raw["data"][0]["embedding"]
 
     # ---- providers ----------------------------------------------------------------------------
     def _send(self, provider, model, prompt, tout):
-        name = model.split("/", 1)[1]
+        name = WIRE_NAMES.get(model, model.split("/", 1)[1])
         if provider == "openai":
             return self.transport.post("https://api.openai.com/v1/chat/completions", {"Authorization": f"Bearer {KEYS['openai']()}"},
                                        {"model": name, "messages": [{"role": "user", "content": prompt}],
-                                        "max_completion_tokens": tout, "temperature": 0})
+                                        "max_completion_tokens": tout, **DECODING["openai"]})   # only its default temperature
         if provider == "anthropic":
             return self.transport.post("https://api.anthropic.com/v1/messages",
-                                       {"x-api-key": KEYS["anthropic"](), "anthropic-version": "2023-06-01"},
-                                       {"model": name, "max_tokens": tout, "temperature": 0,
+                                       {"x-api-key": KEYS["anthropic"](), "anthropic-version": "2023-06-01",
+                                        **({"anthropic-workspace-id": KEYS["anthropic_workspace"]()} if KEYS["anthropic_workspace"]() else {})},
+                                       {"model": name, "max_tokens": tout, **DECODING["anthropic"],   # no temperature: deprecated
                                         "messages": [{"role": "user", "content": prompt}]})
         if provider == "google":
             return self.transport.post(f"https://generativelanguage.googleapis.com/v1beta/models/{name}:generateContent",

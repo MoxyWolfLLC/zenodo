@@ -181,7 +181,7 @@ class AdapterTests(unittest.TestCase):
 
     def test_every_template_renders_and_an_oversized_input_is_refused_before_dispatch(self):
         for stage, fields in (("extraction", dict(unit_id="ac-1", unit_text="t")),
-                              ("proposal", dict(unit_id="ac-1", activities="a", hub_id="GV.OC-01", hub_text="h", levels="l", null="n")),
+                              ("proposal", dict(unit_id="ac-1", unit_text="t", activities="a", hub_id="GV.OC-01", hub_text="h", levels="l", null="n")),
                               ("vote", dict(unit_id="ac-1", hub_id="GV.OC-01", level="equal", quotes="q", unit_text="t", hub_text="h", levels="l", null="n")),
                               ("council", dict(rubric="r", unit_id="ac-1", unit_text="t", context="c", hub_id="GV.OC-01", hub_text="h", levels="l", null="n"))):
             self.assertIn("ac-1", providers.render(stage, **fields))
