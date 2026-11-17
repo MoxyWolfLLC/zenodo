@@ -9,13 +9,15 @@ and tags every reference entry by the semantics its source supports.
     python3 -I fetch_sources.py            fetch, hash, count, tag; writes data/ and the three JSON files
     python3 -I fetch_sources.py --check    re-hash data/ against sources.json; exit 2 on a mismatch
 
-Exit codes: 0 ok; 2 a fetched or re-read file's hash differs from the pinned one; 3 a fetch failed.
+Exit codes: 0 ok; 2 a fetched or re-read file's hash differs from the pinned one (a first run that finds a
+sources.json whose hashes differ exits 2 and changes nothing); 3 a fetch failed.
 Stdout carries one line per file (name, bytes, SHA-256) and the counts. Stderr carries failures.
 """
 import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import urllib.request
 import zipfile
@@ -40,6 +42,21 @@ SOURCES = {
 
 
 def sha256(path):
+    """The pinned hash. For the workbook, which NIST generates per download, it is a content hash over every
+    zip member except docProps/* and the cover sheet xl/worksheets/sheet1.xml: the only members that change
+    between downloads (a created timestamp and a generation-date cell). Other files hash as bytes."""
+    if path.endswith(".xlsx"):
+        h = hashlib.sha256()
+        with zipfile.ZipFile(path) as z:
+            for n in sorted(z.namelist()):
+                if n.startswith("docProps/") or n == "xl/worksheets/sheet1.xml":
+                    continue
+                h.update(n.encode()); h.update(z.read(n))
+        return h.hexdigest()
+    return bytes_sha256(path)
+
+
+def bytes_sha256(path):
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1 << 20), b""):
@@ -47,9 +64,9 @@ def sha256(path):
     return h.hexdigest()
 
 
-def fetch(name, url):
-    os.makedirs(DATA, exist_ok=True)
-    path = os.path.join(DATA, name)
+def fetch(name, url, into=DATA):
+    os.makedirs(into, exist_ok=True)
+    path = os.path.join(into, name)
     req = urllib.request.Request(url, headers={"User-Agent": "sp800-53-to-csf2 fetch_sources.py"})
     with urllib.request.urlopen(req, timeout=120) as r, open(path, "wb") as f:
         f.write(r.read())
@@ -104,26 +121,39 @@ def xlsx_strings(path):
 def main(argv):
     check_only = "--check" in argv
     today = date.today().isoformat()
-    pinned = json.load(open(os.path.join(HERE, "sources.json"))) if check_only else None
+    existing = os.path.join(HERE, "sources.json")
+    pinned = json.load(open(existing)) if (check_only or os.path.isfile(existing)) else None
+    # a first run that finds a sources.json fetches into a scratch dir first, so a mismatch changes nothing
+    into = DATA if check_only or pinned is None else os.path.join(HERE, ".fetch-tmp")
     manifest = {"retrieved": today, "files": {}}
     for name, src in SOURCES.items():
-        path = os.path.join(DATA, name)
+        path = os.path.join(into, name)
         if not check_only:
             try:
-                fetch(name, src["url"])
+                fetch(name, src["url"], into)
             except Exception as e:  # noqa: BLE001
                 print(f"fetch failed: {name}: {e}", file=sys.stderr)
                 return 3
+        if pinned is not None and pinned["files"][name]["sha256"] != sha256(path):
+            print(f"hash mismatch: {name}: pinned {pinned['files'][name]['sha256']} now {sha256(path)}", file=sys.stderr)
+            if into != DATA:
+                shutil.rmtree(into, ignore_errors=True)
+            return 2
         digest, size = sha256(path), os.path.getsize(path)
         print(f"{name} {size} {digest}")
-        if check_only and pinned["files"][name]["sha256"] != digest:
-            print(f"hash mismatch: {name}: pinned {pinned['files'][name]['sha256']} now {digest}", file=sys.stderr)
-            return 2
         manifest["files"][name] = {"url": src["url"], "what": src["what"], "bytes": size, "sha256": digest,
-                                   "retrieved": pinned["files"][name]["retrieved"] if check_only else today}
+                                   "hash_basis": ("zip members except docProps/* and the cover sheet, which carry the generation time"
+                                                  if name.endswith(".xlsx") else "file bytes"),
+                                   "bytes_sha256": bytes_sha256(path),
+                                   "retrieved": pinned["files"][name]["retrieved"] if pinned else today}
     if check_only:
         print("sources.json verified")
         return 0
+    if into != DATA:  # every hash matched the pinned one: move the fresh files into place
+        os.makedirs(DATA, exist_ok=True)
+        for name in SOURCES:
+            os.replace(os.path.join(into, name), os.path.join(DATA, name))
+        os.rmdir(into)
 
     cat = count_catalog(os.path.join(DATA, "sp800-53r5_catalog.json"))
     subs, funcs, cats, ext, rel_types = csf_core(os.path.join(DATA, "csf2_core_cprt.json"))

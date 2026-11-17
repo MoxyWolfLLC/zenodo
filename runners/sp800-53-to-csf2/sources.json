@@ -6,6 +6,8 @@
       "what": "SP 800-53 Rev. 5 catalog, OSCAL JSON, usnistgov/oscal-content main",
       "bytes": 10448237,
       "sha256": "64ca6b4161de51ab6af098a7d101d326f14c95e1abf721396cd8a049e8115eeb",
+      "hash_basis": "file bytes",
+      "bytes_sha256": "64ca6b4161de51ab6af098a7d101d326f14c95e1abf721396cd8a049e8115eeb",
       "retrieved": "2026-11-16"
     },
     "csf2_core_cprt.json": {
@@ -13,13 +15,17 @@
       "what": "CSF 2.0 core, CPRT JSON export: functions, categories, subcategories, implementation examples, and external_reference links to SP 800-53 families",
       "bytes": 753380,
       "sha256": "de36759d2f3f70a0f28ab9a95505259e568467923295a13d510a068939773e5a",
+      "hash_basis": "file bytes",
+      "bytes_sha256": "de36759d2f3f70a0f28ab9a95505259e568467923295a13d510a068939773e5a",
       "retrieved": "2026-11-16"
     },
     "csf2_informative_references.xlsx": {
       "url": "https://csrc.nist.gov/extensions/nudp/services/json/csf/download?olirids=all",
       "what": "CSF 2.0 Reference Tool workbook: control-level informative references per subcategory (SP 800-53 Rev 5.1.1 and 5.2.0 among others)",
       "bytes": 146545,
-      "sha256": "bd6cedc8b0337b04be3b3e7cb8fe0b94185bda52367123cd4b95a802fbc566c8",
+      "sha256": "509cf571c4f34a20f6738f43a7204e8d3a16ff1ebe88ecc9c276498c2400ee09",
+      "hash_basis": "zip members except docProps/* and the cover sheet, which carry the generation time",
+      "bytes_sha256": "1a03fbc57ee9a9dbb601efcbcbfdd1361b0ae6892b7fc44900e5dcdce8403d0d",
       "retrieved": "2026-11-16"
     }
   },
