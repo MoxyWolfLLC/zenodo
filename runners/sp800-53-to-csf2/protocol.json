@@ -15,6 +15,7 @@
   "anchoring_comparison": {
     "design": "matched pairs, the same primary packet ruled blind and, in a separate session, assisted",
     "pairs_per_split": 30,
+    "selection": "selection_rules.assisted_pairs",
     "statistic": "difference in the share of rulings that agree with the run's proposal, blind minus assisted, with a 95% Wilson interval on the discordant pairs"
   },
   "budget": {
@@ -294,6 +295,7 @@
   },
   "double_ruled": {
     "from": "primary packets",
+    "selection": "selection_rules.double_ruled",
     "share": 0.2,
     "statistic": "Krippendorff's alpha"
   },
@@ -312,6 +314,7 @@
       "inclusion_probability": 0.05102040816326531,
       "note": "the same r for every unit; weight is the inverse inclusion probability",
       "pool_per_unit": 98,
+      "selection": "selection_rules.missed_link",
       "weight": 19.6
     },
     "retrieved_stratum": {
@@ -3116,6 +3119,48 @@
   },
   "seed": "d1d5007477fd88b521409b6a4c89a7e816e5ef5c175d392b47afffe7f84a88e0",
   "seed_basis": "sha256 of the three pinned source hashes in sources.json, in file-name order",
+  "selection_rules": {
+    "assisted_pairs": {
+      "count": 30,
+      "draw_name": "assisted_pairs",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "population": "primary packets of the split that received a blind ruling, identified by packet id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed"
+    },
+    "double_ruled": {
+      "draw_name": "double_ruled",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "population": "primary packets of the split, identified by their packet id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed",
+      "share": 0.2
+    },
+    "missed_link": {
+      "count": 5,
+      "draw_name": "missed_link",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "note": "r = 5 for every unit; pool 98 when every top-k candidate is a distinct subcategory",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "per_unit": true,
+      "population": "per unit: the hub entries outside the unit's retrieved top-k, identified by subcategory id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed"
+    },
+    "ss_audit": {
+      "count": 30,
+      "draw_name": "ss_audit",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "note": "all of them when fewer exist; the pool size is recorded",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "per_card": true,
+      "population": "per card: outputs the card refused or flagged in the split, identified by output id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed"
+    }
+  },
   "sources": {
     "csf2_core_cprt.json": "de36759d2f3f70a0f28ab9a95505259e568467923295a13d510a068939773e5a",
     "csf2_informative_references.xlsx": "509cf571c4f34a20f6738f43a7204e8d3a16ff1ebe88ecc9c276498c2400ee09",
@@ -3140,7 +3185,8 @@
       "SS-retrieval"
     ],
     "per_card": 30,
-    "pooled_per_split": true
+    "pooled_per_split": true,
+    "selection": "selection_rules.ss_audit"
   },
   "unit": "active SP 800-53 Rev. 5 control or enhancement"
 }

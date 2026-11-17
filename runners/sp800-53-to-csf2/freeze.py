@@ -165,6 +165,26 @@ def check_split(chosen, units):
     return None
 
 
+def selection_rules(seed, hub_count):
+    """Every later draw is fixed here as a complete rule: eligible population, ordering, seed, count and
+    method. Identities do not exist yet (packets are made by later items), so the rule, not a list, is
+    what is frozen; a draw that follows it is reproducible from this file alone."""
+    common = {"ordering": "eligible identities sorted as strings, ascending, before any draw",
+              "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+              "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed",
+              "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty"}
+    return {
+        "double_ruled": dict(common, population="primary packets of the split, identified by their packet id",
+                             share=DOUBLE_RULED_SHARE, draw_name="double_ruled"),
+        "missed_link": dict(common, population="per unit: the hub entries outside the unit's retrieved top-k, identified by subcategory id",
+                            count=R, draw_name="missed_link", per_unit=True, note=f"r = {R} for every unit; pool {hub_count - K} when every top-k candidate is a distinct subcategory"),
+        "assisted_pairs": dict(common, population="primary packets of the split that received a blind ruling, identified by packet id",
+                               count=ASSISTED_PAIRS, draw_name="assisted_pairs"),
+        "ss_audit": dict(common, population="per card: outputs the card refused or flagged in the split, identified by output id",
+                         count=SS_AUDIT_PER_CARD, draw_name="ss_audit", per_card=True, note="all of them when fewer exist; the pool size is recorded"),
+    }
+
+
 def price(model, tokens_in, tokens_out):
     p = PRICES[model]
     return (tokens_in * p["in"] + tokens_out * p["out"]) / 1e6
@@ -249,16 +269,19 @@ def main(argv):
             "retrieved_stratum": {"source": "every retrieved candidate the run voted no_relationship, ruled by the council", "weight": 1},
             "non_retrieved_stratum": {"draws_per_unit": R, "pool_per_unit": hub_count - K,
                                       "inclusion_probability": R / (hub_count - K), "weight": (hub_count - K) / R,
-                                      "note": "the same r for every unit; weight is the inverse inclusion probability"}},
-        "anchoring_comparison": {"pairs_per_split": ASSISTED_PAIRS, "design": "matched pairs, the same primary packet ruled blind and, in a separate session, assisted",
+                                      "note": "the same r for every unit; weight is the inverse inclusion probability",
+                                      "selection": "selection_rules.missed_link"}},
+        "anchoring_comparison": {"pairs_per_split": ASSISTED_PAIRS, "selection": "selection_rules.assisted_pairs", "design": "matched pairs, the same primary packet ruled blind and, in a separate session, assisted",
                                  "statistic": "difference in the share of rulings that agree with the run's proposal, blind minus assisted, with a 95% Wilson interval on the discordant pairs"},
-        "double_ruled": {"share": DOUBLE_RULED_SHARE, "from": "primary packets", "statistic": "Krippendorff's alpha"},
+        "double_ruled": {"share": DOUBLE_RULED_SHARE, "from": "primary packets", "statistic": "Krippendorff's alpha",
+                         "selection": "selection_rules.double_ruled"},
+        "selection_rules": selection_rules(seed, hub_count),
         "r3": {"formula": "threshold_r2 - 0.2 floored at 0; if that leaves the value unchanged, threshold_r2 + 0.2 capped at 1",
                "numeric_value": "recorded in config.frozen.json after calibration, never here",
                "scope": "sealed-test split only; its vote identities change, so exactly its vote calls are re-asked; rulings naming a re-asked vote are re-derived at no model cost and counted separately"},
         "calibration": {"revisions_cap": CALIBRATION_REVISIONS, "tunes": ["prompt wording", "confidence threshold"],
                         "labels": "pinned NIST informative references for the calibration split, link versus no link only"},
-        "ss_audit": {"per_card": SS_AUDIT_PER_CARD, "cards": ["SS-scope", "SS-retrieval"], "pooled_per_split": True},
+        "ss_audit": {"per_card": SS_AUDIT_PER_CARD, "cards": ["SS-scope", "SS-retrieval"], "pooled_per_split": True, "selection": "selection_rules.ss_audit"},
         "roles": ROLES, "budget": b,
     }
     raw = json.dumps(protocol, indent=2, sort_keys=True).encode()
