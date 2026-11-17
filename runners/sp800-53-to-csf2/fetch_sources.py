@@ -149,11 +149,13 @@ def main(argv):
     if check_only:
         print("sources.json verified")
         return 0
-    if into != DATA:  # every hash matched the pinned one: move the fresh files into place
+    if into != DATA:  # every hash matched the pinned one: move the fresh files into place, keep the pinned JSONs
         os.makedirs(DATA, exist_ok=True)
         for name in SOURCES:
             os.replace(os.path.join(into, name), os.path.join(DATA, name))
         os.rmdir(into)
+        print("sources.json matched; pins kept")
+        return 0
 
     cat = count_catalog(os.path.join(DATA, "sp800-53r5_catalog.json"))
     subs, funcs, cats, ext, rel_types = csf_core(os.path.join(DATA, "csf2_core_cprt.json"))
