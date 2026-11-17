@@ -5,6 +5,9 @@ touches and nothing else.
 
     python3 -I run.py calibrate [--units N] [--revisions N] [--workers W]
     python3 -I run.py reconcile      drop a unit's terminal row under a revision that also holds its candidate rows
+    python3 -I run.py evaluate [--workers W]
+        the evaluation split under set r2: the frozen configuration (config.frozen.json) with every gate closed; the
+        decisions are the predictions items 7 scores; set_r2.json is written with its hash. Exit 0; 4 on a budget refusal.
         the calibration split (protocol.json sample, split "calibration"), one revision per entry of the
         schedule below, each scored against the pinned NIST informative references for the split as weak
         labels (link versus no link only; absence is never a negative, so a unit with no control-level
@@ -429,13 +432,58 @@ def calibrate(args):
           f"calibration spend {providers.money(total)} USD over {len(rows)} revisions; config.frozen.json sha256 {config['sha256'][:16]}")
 
 
+def frozen_config():
+    with open(CONFIG, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def frozen_set(rev, run, config):
+    """The frozen configuration as a card set: every gate closed, c_min and the proposal wording calibration chose."""
+    return cards.make(rev, run.proposer, run.triad, c_min=config["c_min"], qv={"propose": config["prompt_versions"]["proposal"]})
+
+
+def write_set(rev, S, config, extra=None):
+    rec = {"revision": rev, "gates": {g: "closed" for g in cards.GATES}, "engine": S["engine"], "params": S["params"], "qv": S["qv"],
+           "proposer": S["proposer"], "triad": S["triad"], "config_sha256": config["sha256"], "protocol_sha256": protocol_hash(),
+           "frozen": now(), **(extra or {})}
+    raw = json.dumps(rec, indent=1, sort_keys=True).encode()
+    rec["sha256"] = hashlib.sha256(raw).hexdigest()
+    with open(os.path.join(HERE, f"set_{rev}.json"), "w", encoding="utf-8") as f:
+        json.dump(rec, f, indent=1, sort_keys=True)
+        f.write("\n")
+    return rec
+
+
+def evaluate(args, split="evaluation", rev="r2"):
+    protocol = retrieve.protocol_checked()
+    config = frozen_config()
+    adapter = providers.Adapter(protocol)
+    run = Run(protocol, adapter)
+    sample = [u for u in protocol["sample"]["units"] if u["split"] == split]
+    units = [run.catalog.units[u["id"]] for u in sample]
+    for u in units:
+        run.unit_row(u, split)
+    S = frozen_set(rev, run, config)
+    rec = write_set(rev, S, config, {"split": split, "units": len(units)})
+    before, _ = adapter.spend()
+    run.tally = {"asked": 0, "reused": 0}
+    t0 = time.time()
+    decisions = run.run_split(units, S, config["prompt_versions"]["proposal"], args.workers)
+    after, _ = adapter.spend()
+    routes = {k: sum(1 for d in decisions if d["reason"] == k) for k in sorted({d["reason"] for d in decisions})}
+    print(f"{rev} {split}: {len(units)} units, {len(decisions)} decisions, asked {run.tally['asked']} reused {run.tally['reused']}, "
+          f"cost {providers.money(after - before)} USD, {round(time.time() - t0, 1)}s; routes {routes}; set_{rev}.json sha256 {rec['sha256'][:16]}")
+
+
 def main(argv):
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=["calibrate", "reconcile"])
+    ap.add_argument("command", choices=["calibrate", "reconcile", "evaluate"])
     ap.add_argument("--units", type=int, default=0)
     ap.add_argument("--revisions", type=int, default=len(SCHEDULE))
     ap.add_argument("--workers", type=int, default=6)
     args = ap.parse_args(argv)
+    if args.command == "evaluate":
+        return providers.run_pass(lambda: evaluate(args))
     if args.command == "reconcile":
         removed = reconcile()
         print(f"reconcile: removed {len(removed)} stale terminal row(s)" + (": " + ", ".join(f"{r['unit_id']}@{r['revision']} {r['card_id']}" for r in removed) if removed else ""))

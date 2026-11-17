@@ -1,0 +1,50 @@
+{
+ "audited": "2026-11-17T20:33:02Z",
+ "cards": {
+  "SS-retrieval": {
+   "error_rate": null,
+   "errors": 0,
+   "n": 0,
+   "pool": 0,
+   "rows": [],
+   "seed": "a0aa7d510f1553cac5c999fc57b5e5891faefdbd43c32587c16f9c6ba07fd5ee"
+  },
+  "SS-scope": {
+   "error_rate": 1.0,
+   "errors": 1,
+   "n": 1,
+   "pool": 1,
+   "rows": [
+    {
+     "decision_id": "b2933ae6b1e94ec1",
+     "packet_sha256": "849b2efa6b2e2b9e60238b33d4906baedbcd9e3f1d1d1a4e76223aa5d255b946",
+     "ruling": "error",
+     "unit_id": "ps-4.2",
+     "votes": [
+      {
+       "model": "anthropic/claude-haiku-5.5",
+       "ruling": "error"
+      },
+      {
+       "model": "google/gemini-2.5-flash-lite",
+       "ruling": "correct"
+      },
+      {
+       "model": "mistralai/mistral-large-4-0",
+       "ruling": "invalid"
+      }
+     ]
+    }
+   ],
+   "seed": "a0aa7d510f1553cac5c999fc57b5e5891faefdbd43c32587c16f9c6ba07fd5ee"
+  }
+ },
+ "cost_usd": "0.0009307",
+ "per_card": 30,
+ "revision": "r2",
+ "split": "evaluation",
+ "tally": {
+  "asked": 3,
+  "reused": 0
+ }
+}
