@@ -47,13 +47,14 @@ PRICES = {
 PRICE_SOURCE = "https://openrouter.ai/api/v1/models retrieved 2026-11-16; usd per 1e6 tokens"
 
 ROLES = {
-    "extraction": {"model": "openai/gpt-6-luna", "in": 2000, "out": 400},
-    "embedding":  {"model": "openai/text-embedding-3-small", "in": 400, "out": 0},
-    "proposal":   {"model": "openai/gpt-6-luna", "in": 1500, "out": 200},
+    # input ceilings are byte-length bounds (providers.token_bound): the longest control statement is 1,859 chars
+    "extraction": {"model": "openai/gpt-6-luna", "in": 2500, "out": 400},
+    "embedding":  {"model": "openai/text-embedding-3-small", "in": 2000, "out": 0},
+    "proposal":   {"model": "openai/gpt-6-luna", "in": 3000, "out": 200},
     "vote":       {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-small-2603"],
-                   "in": 1200, "out": 150},
+                   "in": 2800, "out": 150},
     "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-3.1-flash-lite", "mistralai/mistral-large-4-0"],
-                   "in": 1800, "out": 250},
+                   "in": 3200, "out": 250},
 }
 
 LEVELS = ["subset_of", "intersects_with", "equal", "superset_of"]

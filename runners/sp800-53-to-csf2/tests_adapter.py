@@ -132,12 +132,16 @@ class AdapterTests(unittest.TestCase):
             self.assertIn("ac-1", providers.render(stage, **fields))
         err = io.StringIO()
         with redirect_stderr(err), self.assertRaises(providers.BudgetRefused):
-            self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "x" * 3 * 1600, self.q, "e1")
-        self.assertIn("over ceiling", err.getvalue()); self.assertEqual(len(self.stub.requests), 0)
+            self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "x" * 4000, self.q, "e1")
+        self.assertTrue(err.getvalue().startswith("refused: budget ")); self.assertIn("over ceiling", err.getvalue())
+        self.assertEqual(len(self.stub.requests), 0)
         self.assertEqual(self.rows()[-1]["evidence"], "refused")
         with redirect_stderr(io.StringIO()), self.assertRaises(providers.BudgetRefused):
-            self.a.embed("openai/text-embedding-3-small", "y" * 3 * 500, self.q)
+            self.a.embed("openai/text-embedding-3-small", "y" * 2100, self.q)
         self.assertEqual(len(self.stub.requests), 0)
+        # the bound is bytes: a 1-byte-per-token worst case never passes the guard with more tokens than priced
+        self.assertGreaterEqual(providers.token_bound("a b c d e f"), 6 + providers.REQUEST_OVERHEAD)
+        self.assertGreaterEqual(providers.token_bound("日本語"), 9 + providers.REQUEST_OVERHEAD)
 
     def test_run_pass_maps_refusals_to_exit_codes(self):
         def refused():

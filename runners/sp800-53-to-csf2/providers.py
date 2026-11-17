@@ -28,7 +28,6 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PROTOCOL = os.path.join(HERE, "protocol.json")
 ACCOUNTING = os.environ.get("GSTACK_ACCOUNTING") or os.path.join(HERE, "accounting.jsonl")
 STATE = os.environ.get("GSTACK_RUN_STATE") or os.path.join(HERE, "run_state.json")
-CHARS_PER_TOKEN = 3        # conservative: English prose runs near 4 chars per token, so 3 overstates
 REQUEST_OVERHEAD = 16      # tokens a chat request spends on role framing
 
 PROMPT_VERSIONS = {"extraction": "extract-v1", "proposal": "propose-v1", "vote": "vote-v1", "council": "council-v1"}
@@ -55,8 +54,10 @@ class BudgetRefused(Exception):
     token ceiling. The calling pass exits 4 (run_pass)."""
 
 
-def estimate_tokens(text):
-    return -(-len(text) // CHARS_PER_TOKEN) + REQUEST_OVERHEAD
+def token_bound(text):
+    """An upper bound, not an estimate: a byte-level BPE token covers at least one byte, so the UTF-8 byte
+    length plus the request overhead is never below the tokens a provider will count."""
+    return len(text.encode("utf-8")) + REQUEST_OVERHEAD
 
 
 def run_pass(fn):
@@ -180,7 +181,7 @@ class Adapter:
         remaining = self.remaining()
         base = {"stage": role, "provider": provider, "model": model, "prompt_version": prompt_version,
                 "question_identity": question_identity, "evidence_identity": evidence_identity}
-        self._guard(base, charge, remaining, estimate_tokens(prompt), tin)
+        self._guard(base, charge, remaining, token_bound(prompt), tin)
         text, usage, reported = self._dispatch(provider, model, prompt, tin, tout)
         tokens_in, tokens_out = usage.get("in"), usage.get("out")
         if reported is not None:
@@ -200,7 +201,7 @@ class Adapter:
         remaining = self.remaining()
         base = {"stage": "embedding", "provider": provider, "model": model, "prompt_version": None,
                 "question_identity": question_identity, "evidence_identity": None}
-        self._guard(base, charge, remaining, estimate_tokens(text), tin)
+        self._guard(base, charge, remaining, token_bound(text), tin)
         r = self.transport.post("https://api.openai.com/v1/embeddings",
                                 {"Authorization": f"Bearer {KEYS['openai']()}"},
                                 {"model": model.split("/", 1)[1], "input": text})
@@ -216,11 +217,11 @@ class Adapter:
         what the charge was priced on, so an oversized input is never sent and never charged)."""
         reason = None
         if charge > remaining:
-            reason = f"budget {remaining:.4f}"
+            reason = "charge over allowance"
         elif estimated_in > tin:
-            reason = f"input {estimated_in} tokens over ceiling {tin}"
+            reason = f"input bound {estimated_in} tokens over ceiling {tin}"
         if reason:
-            print(f"refused: {reason}", file=sys.stderr)
+            print(f"refused: budget {remaining:.4f} ({reason})", file=sys.stderr)
             self.record({**base, "refused": True, "refusal": reason, "evidence": "refused", "usd": 0.0,
                          "tokens_in": 0, "tokens_out": 0, "max_charge": round(charge, 6)})
             raise BudgetRefused(reason)
