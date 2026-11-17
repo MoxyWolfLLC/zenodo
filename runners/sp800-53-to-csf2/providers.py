@@ -24,6 +24,7 @@ zero-cost accounting row with refused: true and evidence "refused", and returns 
     python3 -I providers.py probe     one real embedding call through run_pass, the smallest calling pass
 """
 import hashlib
+import http.client
 import json
 import os
 import sys
@@ -161,11 +162,16 @@ class Transport:
                 raw = r.read()
         except urllib.error.HTTPError as e:
             # a 4xx is the provider's own answer, nothing billed; a 5xx may come from a gateway in front of a model that
-            # did the work, so its billing is unknown
-            raise TransportError(f"{url}: HTTP {e.code}: {e.read().decode()[:300]}", answered=e.code < 500,
+            # did the work, so its billing is unknown. The error body is read defensively: a failure there is unknown too.
+            try:
+                detail = e.read().decode(errors="replace")[:300]
+            except Exception as read_error:   # noqa: BLE001 - anything that stops the body being read
+                raise TransportError(f"{url}: HTTP {e.code}, body unreadable: {read_error}", answered=False, retryable=False, status=e.code)
+            raise TransportError(f"{url}: HTTP {e.code}: {detail}", answered=e.code < 500,
                                  retryable=e.code in self.RETRYABLE, status=e.code)
-        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
-            raise TransportError(f"{url}: {e}", answered=False, retryable=False)
+        except (urllib.error.URLError, http.client.HTTPException, TimeoutError, ConnectionError, OSError) as e:
+            # IncompleteRead and its siblings are HTTPException, not OSError: the request left, the outcome is unknown
+            raise TransportError(f"{url}: {type(e).__name__}: {e}", answered=False, retryable=False)
         try:
             return json.loads(raw.decode())
         except (ValueError, UnicodeDecodeError) as e:    # the request completed; the response is unusable: billing unknown
@@ -281,8 +287,12 @@ class Adapter:
                            status=e.status, attempt=attempt + 1, retry=retry)
                 if not retry:
                     raise
-            except BaseException:
-                self._release(provider, charge)
+            except BaseException as e:   # anything the transport did not classify: the request may have left, charge the ceiling
+                with self._lock:
+                    self.record({**base, "refused": False, "evidence": "unpriced", "charged_usd": money(charge),
+                                 "tokens_in": None, "tokens_out": None, "max_expected_charge_usd": money(charge),
+                                 "remaining_usd": money(remaining), "failure": f"{type(e).__name__}: {e}"[:200], "attempt": attempt + 1})
+                    self._reserve(provider, charge, -1)
                 raise
             time.sleep(BACKOFF[attempt])
         raise AssertionError("unreachable")

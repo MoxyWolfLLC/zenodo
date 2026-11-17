@@ -284,6 +284,12 @@ class AdapterTests(unittest.TestCase):
             self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
         self.assertEqual(len(self.rows()), 2, "an answered 400 bills nothing and adds no row")
         self.assertEqual(self.rows(self.ev)[-1]["event"], "call_failed")
+        self.stub.answers["api.openai.com"] = lambda body: (_ for _ in ()).throw(KeyError("unclassified"))
+        with self.assertRaises(KeyError):      # a failure the transport did not classify is charged at the ceiling too
+            self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
+        last = self.rows()[-1]
+        self.assertEqual((last["evidence"], len(self.rows())), ("unpriced", 3)); self.assertIn("KeyError", last["failure"])
+        self.assertEqual(self.a._inflight.get("*", Decimal(0)), Decimal(0))
 
 
     def test_reservation_holds_until_the_charge_is_recorded(self):
@@ -342,6 +348,14 @@ class AdapterTests(unittest.TestCase):
                 with self.assertRaises(providers.TransportError) as cm:
                     tr.post("https://x.test/v1", {}, {})
                 self.assertEqual((cm.exception.answered, cm.exception.retryable, cm.exception.status), (answered, retryable, status))
+        import http.client
+
+        class Broken(Resp):
+            def read(self): raise http.client.IncompleteRead(b"half")
+        providers.urllib.request.urlopen = lambda req, timeout=0: Broken(b"")
+        with self.assertRaises(providers.TransportError) as cm:
+            tr.post("https://x.test/v1", {}, {})
+        self.assertFalse(cm.exception.answered); self.assertIn("IncompleteRead", str(cm.exception))
         providers.urllib.request.urlopen = lambda req, timeout=0: Resp(b"{not json")
         with self.assertRaises(providers.TransportError) as cm:
             tr.post("https://x.test/v1", {}, {})
