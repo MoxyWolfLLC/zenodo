@@ -109,13 +109,36 @@ def csf_core(path):
     funcs = [e for e in els if e["element_type"] == "function" and e["element_identifier"] not in gone]
     cats = [e for e in els if e["element_type"] == "category" and e["element_identifier"] not in gone]
     ext = [r for r in rels if r["relationship_identifier"] == "external_reference"]
-    return subs, funcs, cats, ext, d["relationship_types"]
+    kind = {e["element_identifier"]: e["element_type"] for e in els}
+    return subs, funcs, cats, ext, d["relationship_types"], kind, gone
 
 
-def xlsx_strings(path):
+def xlsx_links(path):
+    """Every published SP 800-53 reference on the 'CSF 2.0' sheet (sheet2; sheet1 is the cover), as
+    (row number, CSF element id, element kind, revision string, control id as published). Column C holds the
+    subcategory, B the category, E the newline-separated informative references."""
     with zipfile.ZipFile(path) as z:
-        ss = z.read("xl/sharedStrings.xml").decode("utf-8")
-    return re.findall(r"<t[^>]*>(.*?)</t>", ss, re.S)
+        ss = [re.sub(r"<[^>]+>", "", s) for s in re.findall(r"<si>(.*?)</si>", z.read("xl/sharedStrings.xml").decode("utf-8"), re.S)]
+        sheet = z.read("xl/worksheets/sheet2.xml").decode("utf-8")
+    links = []
+    for rownum, row in re.findall(r'<row r="(\d+)"[^>]*>(.*?)</row>', sheet, re.S):
+        cells = {}
+        for col, typ, val in re.findall(r'<c r="([A-Z]+)\d+"(?: [^>]*?t="(\w+)")?[^>]*>(?:<v>(.*?)</v>)', row, re.S):
+            cells[col] = ss[int(val)] if typ == "s" else val
+        sub = re.match(r"([A-Z]{2}\.[A-Z]{2}-\d{2})", cells.get("C", ""))
+        cat = re.search(r"\(([A-Z]{2}\.[A-Z]{2})\)", cells.get("B", ""))
+        elem, kind = (sub.group(1), "subcategory") if sub else ((cat.group(1), "category") if cat else (None, None))
+        for line in cells.get("E", "").split("\n"):
+            m = re.match(r"(SP 800-53 Rev [\d.]+): ([A-Z]{2}-\d+(?:\(\d+\))?)$", line.strip())
+            if m and elem:
+                links.append((int(rownum), elem, kind, m.group(1), m.group(2)))
+    return links
+
+
+def oscal_id(ctl):
+    """'AC-02(01)' as published -> 'ac-2.1', the OSCAL catalog's control id."""
+    m = re.match(r"([A-Z]{2})-0*(\d+)(?:\(0*(\d+)\))?$", ctl)
+    return f"{m.group(1).lower()}-{m.group(2)}" + (f".{m.group(3)}" if m.group(3) else "")
 
 
 def main(argv):
@@ -158,18 +181,22 @@ def main(argv):
         return 0
 
     cat = count_catalog(os.path.join(DATA, "sp800-53r5_catalog.json"))
-    subs, funcs, cats, ext, rel_types = csf_core(os.path.join(DATA, "csf2_core_cprt.json"))
-    strs = xlsx_strings(os.path.join(DATA, "csf2_informative_references.xlsx"))
-    ctl_refs = sorted({s for s in strs if re.match(r"SP 800-53 Rev [\d.]+: [A-Z]{2}-\d+(\(\d+\))?$", s)})
-    by_rev = {}
-    for s in ctl_refs:
-        by_rev.setdefault(s.split(":")[0], 0)
-        by_rev[s.split(":")[0]] += 1
+    subs, funcs, cats, ext, rel_types, kind, gone = csf_core(os.path.join(DATA, "csf2_core_cprt.json"))
+    links = xlsx_links(os.path.join(DATA, "csf2_informative_references.xlsx"))
+    by_rev, by_kind = {}, {}
+    for _, elem, k, rev, _ in links:
+        by_rev[rev] = by_rev.get(rev, 0) + 1
+        by_kind[k] = by_kind.get(k, 0) + 1
     manifest["counts"] = {
         "sp800_53": cat,
         "csf2": {"functions": len(funcs), "categories": len(cats), "subcategories": len(subs)},
         "references": {"cprt_external_reference_family_level": len(ext),
-                       "workbook_control_level_distinct_strings_by_revision": by_rev},
+                       "cprt_by_source_kind": {k: sum(1 for r in ext if kind.get(r["source_element_identifier"]) == k)
+                                               for k in ("subcategory", "category")},
+                       "workbook_control_level_links": len(links),
+                       "workbook_links_by_revision": by_rev, "workbook_links_by_csf_kind": by_kind,
+                       "workbook_links_on_withdrawn_subcategories": sum(1 for _, e, k, _, _ in links if k == "subcategory" and e in gone),
+                       "workbook_distinct_control_strings": len({f"{rev}: {c}" for _, _, _, rev, c in links})},
     }
     manifest["direction"] = "SP 800-53 unit -> CSF 2.0 subcategory"
     manifest["scale"] = ["subset_of", "intersects_with", "equal", "superset_of", "no_relationship"]
@@ -184,17 +211,23 @@ def main(argv):
                             "absent": "no link in any pinned source; never evidence of no relationship"},
                  "entries": []}
     for r in ext:
-        semantics["entries"].append({"source": "csf2_core_cprt.json", "subcategory": r["source_element_identifier"],
+        src = r["source_element_identifier"]
+        k = kind.get(src, "unknown")
+        semantics["entries"].append({"source": "csf2_core_cprt.json", "csf_element": src, "csf_kind": k,
+                                     "csf_element_status": "withdrawn" if src in gone else "active",
                                      "target": r["dest_element_identifier"], "target_doc": r["dest_doc_identifier"],
-                                     "granularity": "family", "direction": "CSF subcategory -> SP 800-53 family",
+                                     "granularity": "family", "direction": f"CSF {k} -> SP 800-53 family",
                                      "tag": "association", "justification": "relationship_identifier is external_reference; no type field"})
-    for s in ctl_refs:
-        rev, ctl = s.split(": ")
-        semantics["entries"].append({"source": "csf2_informative_references.xlsx", "subcategory": None,
-                                     "target": ctl, "target_doc": rev, "granularity": "control",
-                                     "direction": "CSF subcategory -> SP 800-53 control (subcategory read per row at item 7)",
+    for rownum, elem, k, rev, ctl in links:
+        semantics["entries"].append({"source": "csf2_informative_references.xlsx", "locator": f"sheet 'CSF 2.0' row {rownum} column E",
+                                     "csf_element": elem, "csf_kind": k,
+                                     "csf_element_status": "withdrawn" if (k == "subcategory" and elem in gone) else "active",
+                                     "target": ctl, "target_oscal_id": oscal_id(ctl), "target_doc": rev, "granularity": "control",
+                                     "direction": f"CSF {k} -> SP 800-53 control",
                                      "tag": "association", "justification": "workbook cell is a bare identifier; no type field"})
-    semantics["summary"] = {"five_class": 0, "association": len(semantics["entries"]), "absent": "not enumerated; absence is not a label"}
+    semantics["summary"] = {"five_class": 0, "association": len(semantics["entries"]),
+                            "association_on_active_csf_elements": sum(1 for e in semantics["entries"] if e["csf_element_status"] == "active"),
+                            "absent": "not enumerated; absence is not a label"}
     json.dump(semantics, open(os.path.join(HERE, "reference_semantics.json"), "w"), indent=2)
 
     print(json.dumps(manifest["counts"]))

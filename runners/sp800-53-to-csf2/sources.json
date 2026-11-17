@@ -22,10 +22,10 @@
     "csf2_informative_references.xlsx": {
       "url": "https://csrc.nist.gov/extensions/nudp/services/json/csf/download?olirids=all",
       "what": "CSF 2.0 Reference Tool workbook: control-level informative references per subcategory (SP 800-53 Rev 5.1.1 and 5.2.0 among others)",
-      "bytes": 146545,
+      "bytes": 146546,
       "sha256": "509cf571c4f34a20f6738f43a7204e8d3a16ff1ebe88ecc9c276498c2400ee09",
       "hash_basis": "zip members except docProps/* and the cover sheet, which carry the generation time",
-      "bytes_sha256": "1a03fbc57ee9a9dbb601efcbcbfdd1361b0ae6892b7fc44900e5dcdce8403d0d",
+      "bytes_sha256": "978a878f8da4fffac06f99fe6496abfd382a7dedf09e061f81483a47a294db63",
       "retrieved": "2026-11-16"
     }
   },
@@ -45,10 +45,21 @@
     },
     "references": {
       "cprt_external_reference_family_level": 408,
-      "workbook_control_level_distinct_strings_by_revision": {
-        "SP 800-53 Rev 5.1.1": 207,
-        "SP 800-53 Rev 5.2.0": 211
-      }
+      "cprt_by_source_kind": {
+        "subcategory": 378,
+        "category": 30
+      },
+      "workbook_control_level_links": 1480,
+      "workbook_links_by_revision": {
+        "SP 800-53 Rev 5.1.1": 737,
+        "SP 800-53 Rev 5.2.0": 743
+      },
+      "workbook_links_by_csf_kind": {
+        "subcategory": 1468,
+        "category": 12
+      },
+      "workbook_links_on_withdrawn_subcategories": 0,
+      "workbook_distinct_control_strings": 418
     }
   },
   "direction": "SP 800-53 unit -> CSF 2.0 subcategory",
