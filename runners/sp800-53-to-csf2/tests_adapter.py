@@ -79,8 +79,10 @@ class AdapterTests(unittest.TestCase):
         self.a.call("vote", "google/gemini-2.5-flash-lite", "vote-v1", "p", self.q, "e1")
         self.a.call("vote", "mistralai/mistral-small-2603", "vote-v1", "p", self.q, "e1")
         rows = self.rows()
-        self.assertEqual([r["provider"] for r in rows], ["openai", "anthropic", "google", "openrouter"])
-        self.assertEqual([r["evidence"] for r in rows], ["usage_priced"] * 3 + ["provider_reported"])
+        # Gemini is reached through OpenRouter (2026-11-17): it bills as openrouter and seats as google
+        self.assertEqual([r["provider"] for r in rows], ["openai", "anthropic", "openrouter", "openrouter"])
+        self.assertEqual([r["family"] for r in rows], ["openai", "anthropic", "google", "mistralai"])
+        self.assertEqual([r["evidence"] for r in rows], ["usage_priced"] * 2 + ["provider_reported"] * 2)
         self.assertEqual(Decimal(rows[3]["charged_usd"]), Decimal("0.000123"))
         self.assertEqual(Decimal(rows[0]["charged_usd"]), (Decimal(500) * Decimal("0.1") + Decimal(50) * Decimal("0.5")) / Decimal(1_000_000))
         for r in rows:
@@ -90,7 +92,7 @@ class AdapterTests(unittest.TestCase):
             self.assertIn(r["prompt_version"], providers.PROMPT_VERSIONS.values())
             self.assertEqual(Decimal(r["max_expected_charge_usd"]), self.a.max_charge(r["model"], *self.a.ceilings(r["stage"])))
         starts = [e for e in self.rows(self.ev) if e["event"] == "call_started"]
-        self.assertEqual([e["provider"] for e in starts], ["openai", "anthropic", "google", "openrouter"])
+        self.assertEqual([e["provider"] for e in starts], ["openai", "anthropic", "openrouter", "openrouter"])
         self.assertEqual({e["transport"] for e in starts}, {"stub"})
         self.assertEqual({e["protocol_sha256"] for e in starts}, {"f" * 64})
 
@@ -109,12 +111,12 @@ class AdapterTests(unittest.TestCase):
 
     def test_provider_allowance_binds_when_smaller_than_the_global_one(self):
         caps = self.a.provider_caps
-        self.spend(str(caps["google"] - Decimal("0.0000001")), provider="google")   # google spent to its cap; global has 50 left
-        self.assertEqual(self.a.remaining("google"), Decimal("0.0000001"))
-        self.assertEqual(self.a.remaining("openai"), caps["openai"])   # its own cap, below the global 50
+        self.spend(str(caps["openrouter"] - Decimal("0.0000001")), provider="openrouter")   # openrouter spent to its cap; global has 40 left
+        self.assertEqual(self.a.remaining("openrouter"), Decimal("0.0000001"))
+        self.assertEqual(self.a.remaining("openai"), caps["openai"])   # its own cap, below the global 40
         err = io.StringIO()
         with redirect_stderr(err), self.assertRaises(providers.BudgetRefused):
-            self.a.call("vote", "google/gemini-2.5-flash-lite", "vote-v1", "p", self.q, "e1")
+            self.a.call("vote", "google/gemini-2.5-flash-lite", "vote-v1", "p", self.q, "e1")   # bills as openrouter: refused
         self.assertEqual(Decimal(err.getvalue().split()[2]), Decimal("0.0000001"))
         self.a.call("vote", "anthropic/claude-haiku-5.5", "vote-v1", "p", self.q, "e1")   # another provider still goes
         self.assertEqual(len(self.stub.requests), 1)
@@ -175,7 +177,9 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(out["level"], "subset_of"); self.assertEqual(out["reason"], "majority")
         self.assertEqual([e["role"] for e in self.rows(self.ev)], ["council"] * 3)
         self.stub.answers["api.anthropic.com"] = {"content": [{"text": '{"level": "equal"}'}], "usage": {"input_tokens": 1, "output_tokens": 1}}
-        self.stub.answers["openrouter.ai"] = {"choices": [{"message": {"content": '{"level": "superset_of"}'}}], "usage": {"cost": 0.0001}}
+        by_model = {"google/gemini-2.5-flash-lite": "intersects_with", "mistralai/mistral-large-4-0": "superset_of"}
+        self.stub.answers["openrouter.ai"] = lambda body: {"choices": [{"message": {"content": json.dumps({"level": by_model[body["model"]]})}}],
+                                                           "usage": {"cost": 0.0001}}
         out = self.a.council(packet, self.q, "e1")
         self.assertEqual(out["level"], "no_relationship"); self.assertEqual(out["reason"], "split")
 

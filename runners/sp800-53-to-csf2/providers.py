@@ -137,23 +137,24 @@ class Transport:
     """Real HTTP. Tests and the fixture harness replace it; replay mode replaces it with a refuser."""
     kind = "live"
 
-    RETRY = (429, 500, 502, 503, 504)   # ponytail: three tries with a short backoff; anything else is the caller's
+    RETRY = (429, 500, 502, 503, 504)   # ponytail: bounded backoff (2, 4, 8, 16, 32, 60 s); anything else is the caller's
+    BACKOFF = (2, 4, 8, 16, 32, 60)
 
     def post(self, url, headers, body, timeout=120):
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", **headers})
-        for attempt in range(3):
+        for attempt in range(len(self.BACKOFF) + 1):
             try:
                 with urllib.request.urlopen(req, timeout=timeout) as r:
                     return json.loads(r.read().decode())
             except urllib.error.HTTPError as e:
                 detail = e.read().decode()[:300]
-                if e.code in self.RETRY and attempt < 2:
-                    time.sleep(2 ** attempt)
+                if e.code in self.RETRY and attempt < len(self.BACKOFF):
+                    time.sleep(self.BACKOFF[attempt])
                     continue
                 raise RuntimeError(f"{url}: HTTP {e.code}: {detail}")
             except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
-                if attempt < 2:
-                    time.sleep(2 ** attempt)
+                if attempt < len(self.BACKOFF):
+                    time.sleep(self.BACKOFF[attempt])
                     continue
                 raise RuntimeError(f"{url}: {e}")
 
@@ -179,7 +180,8 @@ class Adapter:
         self.protocol = protocol
         self.protocol_sha256 = protocol_sha256   # every call_started names the frozen protocol it ran under
         b = protocol["budget"]
-        self.prices = {m: {"in": D(p["in"]), "out": D(p["out"]), "provider": p["provider"]} for m, p in b["prices"].items()}
+        self.prices = {m: {"in": D(p["in"]), "out": D(p["out"]), "provider": p["provider"], "family": p.get("family", p["provider"])}
+                       for m, p in b["prices"].items()}   # provider bills; family is the seat the independence rules read
         self.cap, self.reserve = D(b["cap_usd"]), D(b["reserve_usd"])
         self.provider_caps = {k: D(v) for k, v in b.get("provider_caps", {}).items()}
         self.roles = protocol["roles"]
@@ -224,6 +226,10 @@ class Adapter:
         if provider in self.provider_caps:
             remaining = min(remaining, self.provider_caps[provider] - by_provider.get(provider, Decimal(0)))
         return remaining
+
+    def family(self, model):
+        """The model's maker: the seat identity for the triad and the council, whoever bills the call."""
+        return self.prices[model]["family"]
 
     def max_charge(self, model, tokens_in, tokens_out):
         p = self.prices[model]
@@ -285,7 +291,7 @@ class Adapter:
         tin, tout = self.ceilings(role)
         provider = self.prices[model]["provider"]
         charge = self.max_charge(model, tin, tout)
-        base = {"stage": role, "provider": provider, "model": model, "prompt_version": prompt_version,
+        base = {"stage": role, "provider": provider, "family": self.family(model), "model": model, "prompt_version": prompt_version,
                 "question_identity": question_identity, "evidence_identity": evidence_identity,
                 "decoding": DECODING.get(provider, {}), **context}
         with self._lock:

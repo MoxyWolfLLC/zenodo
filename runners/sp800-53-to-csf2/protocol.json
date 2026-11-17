@@ -4,7 +4,7 @@
     "assisted_packet": "the primary packet plus the run's proposal, votes and confidence; never primary gold",
     "council_voices": [
       "anthropic/claude-haiku-5.5",
-      "google/gemini-3.1-flash-lite",
+      "google/gemini-2.5-flash-lite",
       "mistralai/mistral-large-4-0"
     ],
     "double_ruled_from": "primary packets only",
@@ -21,9 +21,8 @@
   "budget": {
     "by_provider_usd": {
       "anthropic": 4.67,
-      "google": 7.52,
       "openai": 3.31,
-      "openrouter": 15.35
+      "openrouter": 19.81
     },
     "cap_usd": 60.0,
     "k": 8,
@@ -82,7 +81,7 @@
         "basis": "sample x k, one per voter",
         "calls": 2856,
         "model": "google/gemini-2.5-flash-lite",
-        "provider": "google",
+        "provider": "openrouter",
         "stage": "vote",
         "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
@@ -132,7 +131,7 @@
         "basis": "six-revision cap x calibration units x k, one per voter",
         "calls": 4368,
         "model": "google/gemini-2.5-flash-lite",
-        "provider": "google",
+        "provider": "openrouter",
         "stage": "calibration_vote",
         "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
@@ -161,12 +160,12 @@
       {
         "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
         "calls": 2426,
-        "model": "google/gemini-3.1-flash-lite",
-        "provider": "google",
+        "model": "google/gemini-2.5-flash-lite",
+        "provider": "openrouter",
         "stage": "council_evaluation",
         "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 2.8506
+        "usd": 1.0189
       },
       {
         "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -191,12 +190,12 @@
       {
         "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
         "calls": 1638,
-        "model": "google/gemini-3.1-flash-lite",
-        "provider": "google",
+        "model": "google/gemini-2.5-flash-lite",
+        "provider": "openrouter",
         "stage": "council_test",
         "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 1.9246
+        "usd": 0.688
       },
       {
         "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -222,7 +221,7 @@
         "basis": "sealed-test votes re-asked, worst case every one, one per voter",
         "calls": 848,
         "model": "google/gemini-2.5-flash-lite",
-        "provider": "google",
+        "provider": "openrouter",
         "stage": "r3_allowance",
         "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
@@ -239,39 +238,40 @@
         "usd": 0.4325
       }
     ],
-    "price_source": "https://openrouter.ai/api/v1/models retrieved 2026-11-16; usd per 1e6 tokens",
+    "price_source": "https://openrouter.ai/api/v1/models retrieved 2026-11-16, re-read 2026-11-17; usd per 1e6 tokens",
     "prices": {
       "anthropic/claude-haiku-5.5": {
+        "family": "anthropic",
         "in": 0.1,
         "out": 0.5,
         "provider": "anthropic"
       },
       "google/gemini-2.5-flash-lite": {
+        "family": "google",
         "in": 0.1,
         "out": 0.4,
-        "provider": "google"
-      },
-      "google/gemini-3.1-flash-lite": {
-        "in": 0.25,
-        "out": 1.5,
-        "provider": "google"
+        "provider": "openrouter"
       },
       "mistralai/mistral-large-4-0": {
+        "family": "mistralai",
         "in": 0.7,
         "out": 2.1,
         "provider": "openrouter"
       },
       "mistralai/mistral-small-2603": {
+        "family": "mistralai",
         "in": 0.15,
         "out": 0.6,
         "provider": "openrouter"
       },
       "openai/gpt-6-luna": {
+        "family": "openai",
         "in": 0.1,
         "out": 0.5,
         "provider": "openai"
       },
       "openai/text-embedding-3-small": {
+        "family": "openai",
         "in": 0.02,
         "out": 0.0,
         "provider": "openai",
@@ -288,8 +288,8 @@
     "r": 5,
     "reserve_rule": "inside the cap; released only in the deliverables phase",
     "reserve_usd": 10.0,
-    "total_usd": 30.86,
-    "total_with_reserve_usd": 40.86,
+    "total_usd": 27.79,
+    "total_with_reserve_usd": 37.79,
     "voices": 3
   },
   "calibration": {
@@ -340,7 +340,7 @@
       "in": 3200,
       "models": [
         "anthropic/claude-haiku-5.5",
-        "google/gemini-3.1-flash-lite",
+        "google/gemini-2.5-flash-lite",
         "mistralai/mistral-large-4-0"
       ],
       "out": 250
@@ -370,6 +370,7 @@
       "out": 150
     }
   },
+  "routing_note": "Gemini is reached through OpenRouter (Google's direct API unavailable 2026-11-17; Dorian's instruction); the council's Google voice is gemini-2.5-flash-lite so the OpenRouter worst case stays under its $20 cap. Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families.",
   "rubric": "Unit: one active SP 800-53 Rev. 5 control or control enhancement (statement text). Hub entry: one active\nCSF 2.0 subcategory (identifier and text). Rule on the set of required activities each describes, following\nNIST IR 8477's set-theory relationship types:\n  subset_of        every activity the unit requires is required by the subcategory, and the subcategory requires more\n  superset_of      every activity the subcategory requires is required by the unit, and the unit requires more\n  equal            the two require the same activities\n  intersects_with  some required activities are shared, each side also requires activities the other does not\n  no_relationship  no required activity is shared\nRule from the two texts alone. A packet shows source text, context, candidate and this rubric, never a proposal,\nvote, confidence, route or prediction. When the texts do not settle the level, rule no_relationship and say why.",
   "sample": {
     "families": 104,

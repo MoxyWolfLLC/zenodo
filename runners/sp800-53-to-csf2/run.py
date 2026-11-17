@@ -223,7 +223,7 @@ class Run:
         q = providers.identity("vote", proposal_output_id=prop_id, voter=voter, quoted_spans=spans, c_min=c_min,
                                prompt_version="vote-v1")
         out_id = oid(q)
-        provider = self.adapter.prices[voter]["provider"]
+        provider = self.adapter.family(voter)          # the seat: the model's maker, whoever bills the call
         r = self.row("votes", out_id)
         if r:
             self.count("reused")
