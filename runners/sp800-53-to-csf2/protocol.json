@@ -20,10 +20,10 @@
   },
   "budget": {
     "by_provider_usd": {
-      "anthropic": 2.82,
-      "google": 4.8,
-      "openai": 2.16,
-      "openrouter": 9.43
+      "anthropic": 4.67,
+      "google": 7.52,
+      "openai": 3.31,
+      "openrouter": 15.35
     },
     "cap_usd": 60.0,
     "k": 8,
@@ -34,9 +34,9 @@
         "model": "openai/gpt-6-luna",
         "provider": "openai",
         "stage": "extraction",
-        "tokens_in_ceiling": 2000,
+        "tokens_in_ceiling": 2500,
         "tokens_out_ceiling": 400,
-        "usd": 0.1428
+        "usd": 0.1606
       },
       {
         "basis": "one per sampled unit",
@@ -44,9 +44,9 @@
         "model": "openai/text-embedding-3-small",
         "provider": "openai",
         "stage": "query_embedding",
-        "tokens_in_ceiling": 400,
+        "tokens_in_ceiling": 2000,
         "tokens_out_ceiling": 0,
-        "usd": 0.0029
+        "usd": 0.0143
       },
       {
         "basis": "active subcategories, sources.json counts.csf2.subcategories",
@@ -54,9 +54,9 @@
         "model": "openai/text-embedding-3-small",
         "provider": "openai",
         "stage": "hub_embedding",
-        "tokens_in_ceiling": 400,
+        "tokens_in_ceiling": 2000,
         "tokens_out_ceiling": 0,
-        "usd": 0.0008
+        "usd": 0.0042
       },
       {
         "basis": "sample x k",
@@ -64,9 +64,9 @@
         "model": "openai/gpt-6-luna",
         "provider": "openai",
         "stage": "proposal",
-        "tokens_in_ceiling": 1500,
+        "tokens_in_ceiling": 3000,
         "tokens_out_ceiling": 200,
-        "usd": 0.714
+        "usd": 1.1424
       },
       {
         "basis": "sample x k, one per voter",
@@ -74,9 +74,9 @@
         "model": "anthropic/claude-haiku-5.5",
         "provider": "anthropic",
         "stage": "vote",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.5569
+        "usd": 1.0139
       },
       {
         "basis": "sample x k, one per voter",
@@ -84,9 +84,9 @@
         "model": "google/gemini-2.5-flash-lite",
         "provider": "google",
         "stage": "vote",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.5141
+        "usd": 0.971
       },
       {
         "basis": "sample x k, one per voter",
@@ -94,9 +94,9 @@
         "model": "mistralai/mistral-small-2603",
         "provider": "openrouter",
         "stage": "vote",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.7711
+        "usd": 1.4566
       },
       {
         "basis": "six-revision cap x calibration units",
@@ -104,9 +104,9 @@
         "model": "openai/gpt-6-luna",
         "provider": "openai",
         "stage": "calibration_extraction",
-        "tokens_in_ceiling": 2000,
+        "tokens_in_ceiling": 2500,
         "tokens_out_ceiling": 400,
-        "usd": 0.2184
+        "usd": 0.2457
       },
       {
         "basis": "six-revision cap x calibration units x k",
@@ -114,9 +114,9 @@
         "model": "openai/gpt-6-luna",
         "provider": "openai",
         "stage": "calibration_proposal",
-        "tokens_in_ceiling": 1500,
+        "tokens_in_ceiling": 3000,
         "tokens_out_ceiling": 200,
-        "usd": 1.092
+        "usd": 1.7472
       },
       {
         "basis": "six-revision cap x calibration units x k, one per voter",
@@ -124,9 +124,9 @@
         "model": "anthropic/claude-haiku-5.5",
         "provider": "anthropic",
         "stage": "calibration_vote",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.8518
+        "usd": 1.5506
       },
       {
         "basis": "six-revision cap x calibration units x k, one per voter",
@@ -134,9 +134,9 @@
         "model": "google/gemini-2.5-flash-lite",
         "provider": "google",
         "stage": "calibration_vote",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.7862
+        "usd": 1.4851
       },
       {
         "basis": "six-revision cap x calibration units x k, one per voter",
@@ -144,9 +144,9 @@
         "model": "mistralai/mistral-small-2603",
         "provider": "openrouter",
         "stage": "calibration_vote",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 1.1794
+        "usd": 2.2277
       },
       {
         "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -154,9 +154,9 @@
         "model": "anthropic/claude-haiku-5.5",
         "provider": "anthropic",
         "stage": "council_evaluation",
-        "tokens_in_ceiling": 1800,
+        "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 0.7399
+        "usd": 1.0796
       },
       {
         "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -164,9 +164,9 @@
         "model": "google/gemini-3.1-flash-lite",
         "provider": "google",
         "stage": "council_evaluation",
-        "tokens_in_ceiling": 1800,
+        "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 2.0015
+        "usd": 2.8506
       },
       {
         "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -174,9 +174,9 @@
         "model": "mistralai/mistral-large-4-0",
         "provider": "openrouter",
         "stage": "council_evaluation",
-        "tokens_in_ceiling": 1800,
+        "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 4.3304
+        "usd": 6.7079
       },
       {
         "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -184,9 +184,9 @@
         "model": "anthropic/claude-haiku-5.5",
         "provider": "anthropic",
         "stage": "council_test",
-        "tokens_in_ceiling": 1800,
+        "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 0.4996
+        "usd": 0.7289
       },
       {
         "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -194,9 +194,9 @@
         "model": "google/gemini-3.1-flash-lite",
         "provider": "google",
         "stage": "council_test",
-        "tokens_in_ceiling": 1800,
+        "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 1.3514
+        "usd": 1.9246
       },
       {
         "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -204,9 +204,9 @@
         "model": "mistralai/mistral-large-4-0",
         "provider": "openrouter",
         "stage": "council_test",
-        "tokens_in_ceiling": 1800,
+        "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 2.9238
+        "usd": 4.5291
       },
       {
         "basis": "sealed-test votes re-asked, worst case every one, one per voter",
@@ -214,9 +214,9 @@
         "model": "anthropic/claude-haiku-5.5",
         "provider": "anthropic",
         "stage": "r3_allowance",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.1654
+        "usd": 0.301
       },
       {
         "basis": "sealed-test votes re-asked, worst case every one, one per voter",
@@ -224,9 +224,9 @@
         "model": "google/gemini-2.5-flash-lite",
         "provider": "google",
         "stage": "r3_allowance",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.1526
+        "usd": 0.2883
       },
       {
         "basis": "sealed-test votes re-asked, worst case every one, one per voter",
@@ -234,9 +234,9 @@
         "model": "mistralai/mistral-small-2603",
         "provider": "openrouter",
         "stage": "r3_allowance",
-        "tokens_in_ceiling": 1200,
+        "tokens_in_ceiling": 2800,
         "tokens_out_ceiling": 150,
-        "usd": 0.229
+        "usd": 0.4325
       }
     ],
     "price_source": "https://openrouter.ai/api/v1/models retrieved 2026-11-16; usd per 1e6 tokens",
@@ -278,11 +278,18 @@
         "source": "https://openai.com/api/pricing/ 2026-11-16"
       }
     },
+    "provider_caps": {
+      "anthropic": 12.0,
+      "google": 8.0,
+      "openai": 20.0,
+      "openrouter": 20.0
+    },
+    "provider_caps_source": "GOAL.md, Provider budgets",
     "r": 5,
     "reserve_rule": "inside the cap; released only in the deliverables phase",
     "reserve_usd": 10.0,
-    "total_usd": 19.22,
-    "total_with_reserve_usd": 29.22,
+    "total_usd": 30.86,
+    "total_with_reserve_usd": 40.86,
     "voices": 3
   },
   "calibration": {
@@ -330,7 +337,7 @@
   },
   "roles": {
     "council": {
-      "in": 1800,
+      "in": 3200,
       "models": [
         "anthropic/claude-haiku-5.5",
         "google/gemini-3.1-flash-lite",
@@ -339,22 +346,22 @@
       "out": 250
     },
     "embedding": {
-      "in": 400,
+      "in": 2000,
       "model": "openai/text-embedding-3-small",
       "out": 0
     },
     "extraction": {
-      "in": 2000,
+      "in": 2500,
       "model": "openai/gpt-6-luna",
       "out": 400
     },
     "proposal": {
-      "in": 1500,
+      "in": 3000,
       "model": "openai/gpt-6-luna",
       "out": 200
     },
     "vote": {
-      "in": 1200,
+      "in": 2800,
       "models": [
         "anthropic/claude-haiku-5.5",
         "google/gemini-2.5-flash-lite",

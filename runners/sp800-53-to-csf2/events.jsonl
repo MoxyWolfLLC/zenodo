@@ -1,0 +1,1 @@
+{"event": "call_started", "model": "openai/text-embedding-3-small", "protocol_sha256": null, "provider": "openai", "question_identity": "2f5e64b89fdcbbbd", "role": "retriever", "stage": "embedding", "transport": "live", "ts": "2026-11-17T12:16:36Z"}

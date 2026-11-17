@@ -22,6 +22,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 CAP, RESERVE = 60.0, 10.0
+PROVIDER_CAPS = {"openai": 20.0, "anthropic": 12.0, "google": 8.0, "openrouter": 20.0}   # GOAL.md, Provider budgets
 K = 8                      # retrieval cut-off, fixed, never tuned
 R = 5                      # missed-link draws per unit from outside the retrieved top-k
 TARGET_UNITS = (300, 400)  # exact sample size falls inside this range
@@ -47,13 +48,14 @@ PRICES = {
 PRICE_SOURCE = "https://openrouter.ai/api/v1/models retrieved 2026-11-16; usd per 1e6 tokens"
 
 ROLES = {
-    "extraction": {"model": "openai/gpt-6-luna", "in": 2000, "out": 400},
-    "embedding":  {"model": "openai/text-embedding-3-small", "in": 400, "out": 0},
-    "proposal":   {"model": "openai/gpt-6-luna", "in": 1500, "out": 200},
+    # input ceilings are byte-length bounds (providers.token_bound): the longest control statement is 1,859 chars
+    "extraction": {"model": "openai/gpt-6-luna", "in": 2500, "out": 400},
+    "embedding":  {"model": "openai/text-embedding-3-small", "in": 2000, "out": 0},
+    "proposal":   {"model": "openai/gpt-6-luna", "in": 3000, "out": 200},
     "vote":       {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-small-2603"],
-                   "in": 1200, "out": 150},
+                   "in": 2800, "out": 150},
     "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-3.1-flash-lite", "mistralai/mistral-large-4-0"],
-                   "in": 1800, "out": 250},
+                   "in": 3200, "out": 250},
 }
 
 LEVELS = ["subset_of", "intersects_with", "equal", "superset_of"]
@@ -190,6 +192,10 @@ def price(model, tokens_in, tokens_out):
     return (tokens_in * p["in"] + tokens_out * p["out"]) / 1e6
 
 
+def calls_usd(line):
+    return line["calls"] * price(line["model"], line["tokens_in_ceiling"], line["tokens_out_ceiling"])
+
+
 def budget(n_units, n_by_split, hub_count):
     """Every per-unit count derives from the sample and K; each fixed count names its source."""
     lines = []
@@ -221,11 +227,17 @@ def budget(n_units, n_by_split, hub_count):
                 f"{name} split: " + ", ".join(f"{k} {v}" for k, v in packets.items()) + "; one call per packet per voice", c["in"], c["out"])
     for vm in v["models"]:
         add("r3_allowance", vm, n_test * K, "sealed-test votes re-asked, worst case every one, one per voter", v["in"], v["out"])
-    total = round(sum(l["usd"] for l in lines), 2)
+    total = round(sum(calls_usd(l) for l in lines), 2)
     by_provider = {}
-    for l in lines:
-        by_provider[l["provider"]] = round(by_provider.get(l["provider"], 0) + l["usd"], 2)
+    for l in lines:   # accumulate at full precision, round once (review F2)
+        by_provider[l["provider"]] = by_provider.get(l["provider"], 0) + calls_usd(l)
+    by_provider = {k: round(v, 2) for k, v in by_provider.items()}
+    for p, cap in PROVIDER_CAPS.items():
+        if by_provider.get(p, 0) > cap:
+            print(f"budget for {p} {by_provider[p]} exceeds its cap {cap}", file=sys.stderr)
+            sys.exit(4)
     return {"cap_usd": CAP, "reserve_usd": RESERVE, "reserve_rule": "inside the cap; released only in the deliverables phase",
+            "provider_caps": PROVIDER_CAPS, "provider_caps_source": "GOAL.md, Provider budgets",
             "k": K, "r": R, "voices": VOICES, "lines": lines, "total_usd": total, "total_with_reserve_usd": round(total + RESERVE, 2),
             "by_provider_usd": by_provider, "prices": PRICES, "price_source": PRICE_SOURCE}
 
