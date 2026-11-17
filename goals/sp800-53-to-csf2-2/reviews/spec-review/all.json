@@ -1,0 +1,160 @@
+{
+  "schema": "spec-review/3",
+  "doc": "PLAN.md",
+  "item": null,
+  "scope_sha256": "6aace7e10fc4a5899ad1df1ade790be8242a70f2cfa75ef0b59ca399bde72114",
+  "reviewed_at": "2026-11-17T03:44:54+00:00",
+  "executor": "claude-sonnet-5-5",
+  "advisor": "claude-fable-5-2",
+  "advisor_calls": 1,
+  "usage": [
+    {
+      "input_tokens": 4,
+      "output_tokens": 13798,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 7634,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 7634,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message"
+    },
+    {
+      "input_tokens": 23025,
+      "output_tokens": 3733,
+      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "type": "advisor_message",
+      "model": "claude-fable-5-2"
+    },
+    {
+      "input_tokens": 2,
+      "output_tokens": 6674,
+      "cache_read_input_tokens": 7634,
+      "cache_creation_input_tokens": 14846,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 14846,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "type": "message"
+    }
+  ],
+  "cache": {
+    "read": 7634,
+    "write": 22480
+  },
+  "contradictions": [],
+  "ambiguities": [
+    {
+      "id": "A1",
+      "requirements": [
+        "Definitions: the two undos",
+        "item 2: replay runs every decision under the revision it was stored under",
+        "item 8: undo.py publication reversal"
+      ],
+      "question": "Reactivating r1 after r2 reads sealed-test decisions stored under r2. What is the 'fresh replay of' the previous set that public reads must equal: r1 applied to every decision, or replay under each decision's stored revision?"
+    },
+    {
+      "id": "A2",
+      "requirements": [
+        "Definitions: Model calls / $10 reserve and phase field",
+        "item 2: budget calculation reserve of exactly $10 for validation and reporting"
+      ],
+      "question": "Which calls are 'validation' and may draw on the reserve? Items 7 and 8 council and audit calls happen before the deliverables phase, when the guard blocks the reserve."
+    },
+    {
+      "id": "A3",
+      "requirements": [
+        "item 7: blind primary council packets with ... candidate",
+        "item 7: gold.py audit exits 0 only when no primary packet contains a proposal",
+        "Definitions: proposal identity"
+      ],
+      "question": "A proposal's identity includes the candidate hub entry, and primary packets show the candidate. Does showing a candidate count as containing a proposal for the gold.py audit?"
+    },
+    {
+      "id": "A4",
+      "requirements": [
+        "item 2: council packet classes",
+        "Definitions: Assisted-review packets ... primary gold audit covers primary packets only"
+      ],
+      "question": "Are the voted-no-relationship census, missed-link draw and SS audit packets primary packets, and so subject to the blind-packet audit, or a separate class?"
+    },
+    {
+      "id": "A5",
+      "requirements": [
+        "item 8: run.py policy r3",
+        "item 7: voted no-relationship census",
+        "item 8: score.py --split test"
+      ],
+      "question": "After r3 re-asks sealed-test votes, which vote set (r2 or r3) defines that split's voted-no-relationship census, missed-link estimate and score.test.json?"
+    },
+    {
+      "id": "A6",
+      "requirements": [
+        "item 7: coverage is the share of evaluation-split units with at least one proposal ruled a true link"
+      ],
+      "question": "Are scope-excluded units (no statement text, withdrawn) in the coverage denominator?"
+    },
+    {
+      "id": "A7",
+      "requirements": [
+        "item 7: score.json per-level correct"
+      ],
+      "question": "Is a proposal 'correct' at a level only when the council ruling matches that exact level, or when the council rules any true link?"
+    },
+    {
+      "id": "A8",
+      "requirements": [
+        "item 7",
+        "item 8",
+        "item 9: RESULT.md"
+      ],
+      "question": "Which split's (or pooled) council agreement, missed-link estimate and anchoring comparison does RESULT.md report?"
+    },
+    {
+      "id": "A9",
+      "requirements": [
+        "item 5: unit is an active control or enhancement",
+        "item 5: scope rules withdrawn out by metadata",
+        "item 1: withdrawn count"
+      ],
+      "question": "Do withdrawn controls enter the sample frame? If units are active only, the metadata scope rule never fires on a sampled unit."
+    },
+    {
+      "id": "A10",
+      "requirements": [
+        "Definitions: the 18 control families of the catalog",
+        "item 1: counts computed from files",
+        "item 2: strata by control family"
+      ],
+      "question": "What happens if the pinned catalog's family count differs from 18? Is 18 a fixed expectation or a computed count?"
+    },
+    {
+      "id": "A11",
+      "requirements": [
+        "item 9: check.py --table extended with one row per Scenario in GOAL.md"
+      ],
+      "question": "The Scenarios are not in the plan text. Which scenarios must the table contain?"
+    },
+    {
+      "id": "A12",
+      "requirements": [
+        "Definitions: E1 and every other card id must be reached on fixtures",
+        "item 5: route retrieval only, fixed hub at revision 1"
+      ],
+      "question": "Can curator cards K1 to K3 be reached on fixtures when the hub is fixed and the route is retrieval only?"
+    },
+    {
+      "id": "A13",
+      "requirements": [
+        "item 2: r3 numeric value recorded in config.frozen.json after calibration",
+        "item 6: config.frozen.json written with its hash"
+      ],
+      "question": "Does adding the r3 value to config.frozen.json after calibration change the file's hash, and which hash is authoritative?"
+    }
+  ]
+}
