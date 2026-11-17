@@ -48,6 +48,14 @@ class Calibration(unittest.TestCase):
         body = {k: v for k, v in self.config.items() if k != "sha256"}
         self.assertEqual(self.config["sha256"], hashlib.sha256(json.dumps(body, indent=1, sort_keys=True).encode()).hexdigest())
 
+    def test_no_unit_holds_a_terminal_row_beside_candidate_rows(self):
+        import sqlite3
+        con = sqlite3.connect(os.path.join(HERE, "run.sqlite"))
+        both = con.execute("SELECT d.unit_id, d.revision FROM decisions d WHERE d.hub_entry IS NULL AND EXISTS (SELECT 1 FROM decisions o "
+                           "WHERE o.unit_id=d.unit_id AND o.revision=d.revision AND o.hub_entry IS NOT NULL)").fetchall()
+        con.close()
+        self.assertEqual(both, [])
+
     def test_calibration_decisions_in_the_store_are_calibration_units_only(self):
         import sqlite3
         con = sqlite3.connect(os.path.join(HERE, "run.sqlite"))

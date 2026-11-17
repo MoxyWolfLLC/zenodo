@@ -297,6 +297,25 @@ class Adapter:
             time.sleep(BACKOFF[attempt])
         raise AssertionError("unreachable")
 
+    def _settle_or_ceiling(self, base, charge, remaining, provider, usage):
+        """A completed request is on the ledger before its reservation goes, whatever its response looks like: priced
+        from usage it carries, or at the ceiling when the usage is missing, malformed or anything raises on the way."""
+        try:
+            parsed = usage()              # outside the lock: reading the response needs no ledger
+        except BaseException as e:       # noqa: BLE001
+            parsed = e
+        with self._lock:
+            try:
+                if isinstance(parsed, BaseException):
+                    raise parsed
+                self._settle(base, charge, remaining, *parsed)
+            except BaseException as e:   # noqa: BLE001 - the request completed; what it cost is unknown: the ceiling
+                self.record({**base, "refused": False, "evidence": "unpriced", "charged_usd": money(charge), "tokens_in": None,
+                             "tokens_out": None, "max_expected_charge_usd": money(charge), "remaining_usd": money(remaining),
+                             "failure": f"unpriceable response: {type(e).__name__}: {e}"[:200]})
+            finally:
+                self._reserve(provider, charge, -1)
+
     def _release(self, provider, charge):
         with self._lock:
             self._reserve(provider, charge, -1)
@@ -349,7 +368,9 @@ class Adapter:
     def _settle(self, base, charge, remaining, usage, reported):
         """Price the completed request from what it carried, and record it before anything else is read."""
         tokens_in, tokens_out = usage.get("in"), usage.get("out")
-        if reported is not None:
+        num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and v >= 0
+        tokens_in, tokens_out = (tokens_in if num(tokens_in) else None), (tokens_out if num(tokens_out) else None)
+        if reported is not None and (num(reported) or (isinstance(reported, str) and reported.replace(".", "", 1).isdigit())):
             usd, evidence = D(reported), "provider_reported"
         elif tokens_in is not None and tokens_out is not None:
             usd, evidence = self.max_charge(base["model"], tokens_in, tokens_out), "usage_priced"
@@ -370,14 +391,7 @@ class Adapter:
                 "decoding": DECODING.get(provider, {}), **context}
         raw, remaining = self._attempts(base, charge, provider, token_bound(prompt), tin, "council" if role == "council" else "model",
                                         lambda: self._send(provider, model, prompt, tout))
-        try:
-            usage, reported = self._usage(provider, raw)
-            with self._lock:
-                self._settle(base, charge, remaining, usage, reported)   # on the ledger, then the reservation goes, under one lock
-                self._reserve(provider, charge, -1)
-        except BaseException:
-            self._release(provider, charge)
-            raise
+        self._settle_or_ceiling(base, charge, remaining, provider, lambda: self._usage(provider, raw))
         text = self._content(provider, raw)
         return self._parse(text) if json_out else text
 
@@ -391,14 +405,10 @@ class Adapter:
                                         lambda: self.transport.post("https://api.openai.com/v1/embeddings",
                                                                     {"Authorization": f"Bearer {KEYS['openai']()}"},
                                                                     {"model": model.split("/", 1)[1], "input": text}))
-        try:
-            tokens = (raw.get("usage") or {}).get("prompt_tokens")
-            with self._lock:
-                self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
-                self._reserve(provider, charge, -1)
-        except BaseException:
-            self._release(provider, charge)
-            raise
+        def usage():
+            tokens = (raw.get("usage") or {}).get("prompt_tokens") if isinstance(raw, dict) else None
+            return {"in": tokens, "out": 0 if tokens is not None else None}, None
+        self._settle_or_ceiling(base, charge, remaining, provider, usage)
         return raw["data"][0]["embedding"]
 
     # ---- providers ----------------------------------------------------------------------------

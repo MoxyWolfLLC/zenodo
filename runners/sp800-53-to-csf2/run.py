@@ -4,6 +4,7 @@ stage identity and reused whenever the identity recurs, so a revision re-asks ex
 touches and nothing else.
 
     python3 -I run.py calibrate [--units N] [--revisions N] [--workers W]
+    python3 -I run.py reconcile      drop a unit's terminal row under a revision that also holds its candidate rows
         the calibration split (protocol.json sample, split "calibration"), one revision per entry of the
         schedule below, each scored against the pinned NIST informative references for the split as weak
         labels (link versus no link only; absence is never a negative, so a unit with no control-level
@@ -295,7 +296,9 @@ class Run:
         for d in decisions:
             d["unit_release"] = self.catalog.release(d["unit_id"])
         with self.lock:
-            with self.db:
+            with self.db:                    # a unit's decision set under a revision is replaced whole, never row by row
+                for u in units:
+                    self.db.execute("DELETE FROM decisions WHERE unit_id=? AND revision=?", (u["id"], S["rev"]))
                 for d in decisions:
                     self.db.execute("INSERT OR REPLACE INTO decisions (decision_id, unit_id, unit_release, hub_entry, route, reason_code, "
                                     "level, card_id, writer_kind, ruling_output_id, revision, trace, superseded_by, created) "
@@ -304,6 +307,18 @@ class Run:
                                      d["level"], d["card_id"], d["writer_kind"], None, d["set_revision"], json.dumps(d["trace"]),
                                      None, now()))
         return decisions
+
+
+def reconcile(db_path=STORE):
+    """Drop a unit's terminal row (no candidate) under a revision that also holds its candidate rows: the leftover of an
+    attempt that stopped at intake before a later attempt went on (review 20261117-100049 F2). Returns what was removed."""
+    con = sqlite3.connect(db_path)
+    stale = con.execute("SELECT d.decision_id, d.unit_id, d.revision, d.card_id FROM decisions d WHERE d.hub_entry IS NULL AND EXISTS "
+                        "(SELECT 1 FROM decisions o WHERE o.unit_id=d.unit_id AND o.revision=d.revision AND o.hub_entry IS NOT NULL)").fetchall()
+    with con:
+        con.executemany("DELETE FROM decisions WHERE decision_id=?", [(s[0],) for s in stale])
+    con.close()
+    return [{"decision_id": s[0], "unit_id": s[1], "revision": s[2], "card_id": s[3]} for s in stale]
 
 
 def weak_score(decisions, units, refs):
@@ -416,11 +431,15 @@ def calibrate(args):
 
 def main(argv):
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=["calibrate"])
+    ap.add_argument("command", choices=["calibrate", "reconcile"])
     ap.add_argument("--units", type=int, default=0)
     ap.add_argument("--revisions", type=int, default=len(SCHEDULE))
     ap.add_argument("--workers", type=int, default=6)
     args = ap.parse_args(argv)
+    if args.command == "reconcile":
+        removed = reconcile()
+        print(f"reconcile: removed {len(removed)} stale terminal row(s)" + (": " + ", ".join(f"{r['unit_id']}@{r['revision']} {r['card_id']}" for r in removed) if removed else ""))
+        return 0
     return providers.run_pass(lambda: calibrate(args))
 
 

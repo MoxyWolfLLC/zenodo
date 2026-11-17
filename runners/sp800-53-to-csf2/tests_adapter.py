@@ -364,5 +364,26 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(tr.post("https://x.test/v1", {}, {}), {"ok": 1})
 
 
+    def test_an_unpriceable_completed_response_is_charged_at_the_ceiling(self):
+        """F1 (review 20261117-100049): malformed usage, or a response that is not even an object, never releases a
+        reservation without a charge, for call and for embed."""
+        self.stub.answers["api.openai.com"] = {"choices": [{"message": {"content": "{}"}}],
+                                               "usage": {"prompt_tokens": "unknown", "completion_tokens": 1}}
+        self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
+        row = self.rows()[-1]
+        self.assertEqual(row["evidence"], "unpriced")
+        self.assertEqual(Decimal(row["charged_usd"]), self.a.max_charge("openai/gpt-6-luna", *self.a.ceilings("proposal")))
+        self.stub.answers["api.openai.com"] = ["not", "an", "object"]
+        with self.assertRaises(Exception):
+            self.a.embed("openai/text-embedding-3-small", "x", self.q)
+        row = self.rows()[-1]
+        self.assertEqual((row["stage"], row["evidence"]), ("embedding", "unpriced"))
+        self.assertEqual(Decimal(row["charged_usd"]), self.a.max_charge("openai/text-embedding-3-small", *self.a.ceilings("embedding")))
+        self.assertEqual(self.a._inflight.get("*", Decimal(0)), Decimal(0))
+        self.stub.answers["openrouter.ai"] = {"choices": [{"message": {"content": "{}"}}], "usage": {"cost": "free"}}
+        self.a.call("vote", "mistralai/mistral-small-2603", "vote-v1", "p", self.q, "e1")
+        self.assertEqual(self.rows()[-1]["evidence"], "unpriced", "a cost that is not a number is no price")
+
+
 if __name__ == "__main__":
     unittest.main()
