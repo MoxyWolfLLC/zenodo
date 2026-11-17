@@ -3196,5 +3196,15 @@
     "pooled_per_split": true,
     "selection": "selection_rules.ss_audit"
   },
+  "supersedes": {
+    "changed": [
+      "roles.council.models",
+      "budget",
+      "routing_note",
+      "supersedes"
+    ],
+    "sha256": "34523becd7a3ae762f966ca24e6057ea2e9f87928388111ae020c79de9c97687",
+    "why": "the council's Mistral voice (mistral-large-4-0 reasoned through the 250-token council ceiling and answered nothing); calibration uses no council voice, so its frozen configuration stands"
+  },
   "unit": "active SP 800-53 Rev. 5 control or enhancement"
 }

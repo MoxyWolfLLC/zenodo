@@ -44,7 +44,14 @@ class Calibration(unittest.TestCase):
         self.assertEqual(self.config["c_min"], chosen["c_min"])
         self.assertEqual(self.config["prompt_versions"]["proposal"], chosen["prompt_version"])
         with open(os.path.join(HERE, "protocol.sha256"), encoding="utf-8") as f:
-            self.assertEqual(self.config["protocol_sha256"], f.read().split()[0])
+            current = f.read().split()[0]
+        if self.config["protocol_sha256"] != current:
+            # calibration ran under the protocol this one supersedes; nothing calibration reads may have changed
+            sup = self.protocol.get("supersedes") or {}
+            self.assertEqual(self.config["protocol_sha256"], sup.get("sha256"))
+            read_by_calibration = {"seed", "sources", "sample", "split", "rubric", "calibration", "levels", "null",
+                                   "roles.extraction", "roles.embedding", "roles.proposal", "roles.vote"}
+            self.assertFalse(set(sup.get("changed", [])) & read_by_calibration, sup)
         body = {k: v for k, v in self.config.items() if k != "sha256"}
         self.assertEqual(self.config["sha256"], hashlib.sha256(json.dumps(body, indent=1, sort_keys=True).encode()).hexdigest())
 

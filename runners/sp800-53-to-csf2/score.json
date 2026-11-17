@@ -88,8 +88,8 @@
    "wilson_lower": 0.83605
   }
  ],
- "scored": "2026-11-17T21:56:36Z",
- "sha256": "9b1bb3f69b83699b49d9390af0b9d8d4538aafb1b9919dd8b66ebde9462e575b",
+ "scored": "2026-11-17T21:57:54Z",
+ "sha256": "17d317518c3449091e668f6344c36d53a444056e5f9c2dbdd5a0c5ac95219740",
  "split": "evaluation",
  "ss_audit": {
   "SS-retrieval": {
