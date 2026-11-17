@@ -1,0 +1,114 @@
+{
+ "card_ids": {
+  "audit": [
+   "A1",
+   "A2-otherwise"
+  ],
+  "curator": [
+   "K1",
+   "K2",
+   "K3-otherwise"
+  ],
+  "evidence": [
+   "E1",
+   "E2",
+   "E3",
+   "E4-otherwise"
+  ],
+  "intake": [
+   "I1",
+   "I3",
+   "I4",
+   "SS-scope",
+   "I5-otherwise"
+  ],
+  "retrieval": [
+   "SS-retrieval",
+   "R2-otherwise"
+  ],
+  "ruling": [
+   "H1",
+   "H2",
+   "H3",
+   "H4-otherwise"
+  ],
+  "triad": [
+   "T1",
+   "T2",
+   "T2-gated",
+   "T3",
+   "T3-gated",
+   "T4",
+   "T5-otherwise"
+  ]
+ },
+ "domain": {
+  "evidence": {
+   "conflict": "a level and quotes that disagree",
+   "quotes": "verbatim spans of the control text"
+  },
+  "hub": {
+   "expected": 106,
+   "hub_revision": 1,
+   "source": "sources.json csf2.active_subcategories"
+  },
+  "questions": {
+   "extract": "extract-v1",
+   "propose": "propose-v1",
+   "triad": "vote-v1"
+  },
+  "route": {
+   "H_max": 0,
+   "k": 8,
+   "kind": "retrieval only"
+  },
+  "scale": {
+   "levels": [
+    "subset_of",
+    "intersects_with",
+    "equal",
+    "superset_of"
+   ],
+   "null": "no_relationship",
+   "version": "ir8477-set-theory-1"
+  },
+  "scope": {
+   "content": "no statement text out under SS-scope",
+   "metadata": "withdrawn out (I1)"
+  },
+  "unit": "an active SP 800-53 Rev. 5 control or enhancement; withdrawn units out by metadata (I1)"
+ },
+ "engine": "54dae60c336a1789",
+ "gates": {
+  "equal": "closed",
+  "intersects_with": "closed",
+  "no_match": "closed",
+  "subset_of": "closed",
+  "superset_of": "closed"
+ },
+ "params": {
+  "G_max": 2,
+  "H_max": 0,
+  "a_scope": 0.2,
+  "c_min": 0.7,
+  "closed": [
+   "no_match",
+   "subset_of",
+   "intersects_with",
+   "equal",
+   "superset_of"
+  ],
+  "k": 8,
+  "out_of_scope_types": [
+   "withdrawn"
+  ]
+ },
+ "proposer": "openai/gpt-6-luna",
+ "retriever": "embed-cosine-v1",
+ "revision": "r1",
+ "triad": [
+  "anthropic/claude-haiku-5.5",
+  "google/gemini-2.5-flash-lite",
+  "mistralai/mistral-small-2603"
+ ]
+}
