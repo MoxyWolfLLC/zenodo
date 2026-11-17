@@ -29,17 +29,16 @@
  },
  "gold_packets": 1272,
  "missed_links": {
-  "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson; unresolved rulings are missing observations: left out of both strata, with the draw weight scaled to the resolved draws)",
+  "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson); reported only when every retrieved pair and every drawn candidate carries a ruling",
   "draw_n": 800,
-  "draw_resolved": 796,
   "draw_unresolved": 4,
-  "estimate": 0.557361,
+  "estimate": null,
   "non_retrieved_draw_true_links": 19,
   "non_retrieved_weight": 19.6,
-  "non_retrieved_weight_applied": 19.698492,
   "retrieved_true_links": 308,
   "retrieved_unresolved": 13,
-  "retrieved_voted_no_relationship_true_links": 6
+  "retrieved_voted_no_relationship_true_links": 6,
+  "withheld": "17 required ruling(s) unresolved (13 retrieved, 4 drawn); the frozen weights admit no non-response adjustment"
  },
  "predictions": {
   "pairs": 1272,
@@ -95,8 +94,8 @@
    "wilson_lower": 0.83605
   }
  ],
- "scored": "2026-11-17T22:16:09Z",
- "sha256": "91760440b76f885078b172655b13f041a4e8f706fb35b4a11d6ff722ac607b0a",
+ "scored": "2026-11-17T22:52:43Z",
+ "sha256": "d9a2029cb57b306f352881e8ffec1796d3e6f80eadacd3aed5d152b4c413f300",
  "split": "evaluation",
  "ss_audit": {
   "SS-retrieval": {

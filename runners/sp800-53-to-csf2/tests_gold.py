@@ -117,9 +117,19 @@ class Scoring(unittest.TestCase):
         self.assertEqual(out["predictions"], {"pairs": 30, "with_prediction": 28, "with_label": 30, "unresolved_gold": 0})
         self.assertEqual(out["coverage"]["with_a_true_link"], 30)
         self.assertEqual(out["missed_links"]["retrieved_voted_no_relationship_true_links"], 2)
-        w = 19.6 * 5 / 4   # the protocol weight scaled to the four resolved draws of five
-        self.assertAlmostEqual(out["missed_links"]["estimate"], (2 + w * 2) / (30 + w * 2), places=5)
-        self.assertEqual((out["missed_links"]["draw_n"], out["missed_links"]["draw_resolved"], out["missed_links"]["draw_unresolved"]), (5, 4, 1))
+        # one drawn candidate unresolved: the estimate is withheld, the counts stay, the frozen weight is untouched
+        self.assertIsNone(out["missed_links"]["estimate"])
+        self.assertEqual((out["missed_links"]["draw_n"], out["missed_links"]["draw_unresolved"], out["missed_links"]["non_retrieved_weight"]), (5, 1, 19.6))
+        self.assertIn("1 required ruling(s) unresolved", out["missed_links"]["withheld"])
+        gold_doc["missed_link_draw"]["rows"] = gold_doc["missed_link_draw"]["rows"][:4]; gold_doc["missed_link_draw"]["n"] = 4
+        try:
+            score.HERE = tmp
+            json.dump(gold_doc, open(os.path.join(tmp, "gold.evaluation.json"), "w"))
+            out, _ = score.score("evaluation", "r2", db_path)
+        finally:
+            score.HERE = here
+        self.assertAlmostEqual(out["missed_links"]["estimate"], (2 + 19.6 * 2) / (30 + 19.6 * 2), places=5)
+        self.assertIsNone(out["missed_links"]["withheld"])
         shutil.rmtree(tmp)
 
 
