@@ -10,12 +10,15 @@ Every table that holds a stage output carries that stage's identity, the fields 
   proposal    unit release, extraction output id, candidate hub entry and revision
   vote        the proposal's evidence, the quoted spans shown, the vote-stage parameters (confidence threshold)
   ruling      route, reason code, the exact packet shown by stored output ids
+  decision    unit, candidate, route, reason code, level, card id, writer kind (card | human), revision, trace
 Each identity is stored as its sorted-JSON hash (providers.identity) beside the fields, so a policy change
 can derive expected invalidations from the identities alone (item 8).
 """
+import json
 import os
 import sqlite3
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT = os.path.join(HERE, "run.sqlite")
@@ -47,8 +50,9 @@ CREATE TABLE IF NOT EXISTS rulings (
   packet_output_ids TEXT NOT NULL, identity TEXT NOT NULL, decision TEXT NOT NULL, card TEXT NOT NULL,
   revision TEXT NOT NULL, created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS decisions (
-  decision_id TEXT PRIMARY KEY, unit_release TEXT NOT NULL, hub_entry TEXT NOT NULL, level TEXT NOT NULL,
-  ruling_output_id TEXT NOT NULL, revision TEXT NOT NULL, lane TEXT NOT NULL, created TEXT NOT NULL);
+  decision_id TEXT PRIMARY KEY, unit_id TEXT NOT NULL, unit_release TEXT, hub_entry TEXT, route TEXT NOT NULL,
+  reason_code TEXT NOT NULL, level TEXT, card_id TEXT NOT NULL, writer_kind TEXT NOT NULL, ruling_output_id TEXT,
+  revision TEXT NOT NULL, trace TEXT NOT NULL, superseded_by TEXT, created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sets (
   revision TEXT PRIMARY KEY, active INTEGER NOT NULL, sha256 TEXT NOT NULL, gates TEXT NOT NULL, created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS council_rulings (
@@ -65,6 +69,28 @@ def init(path=DEFAULT):
         con.executescript(SCHEMA)
     con.close()
     return path
+
+
+def write_decisions(path, decisions):
+    """Append decision rows (engine.run_case output) to the ledger; returns what was written, as read back."""
+    con = sqlite3.connect(path)
+    created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    with con:
+        for d in decisions:
+            con.execute("INSERT OR REPLACE INTO decisions (decision_id, unit_id, unit_release, hub_entry, route, reason_code, level, "
+                        "card_id, writer_kind, ruling_output_id, revision, trace, superseded_by, created) "
+                        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (d["decision_id"], d["unit_id"], d.get("unit_release"), d["candidate_id"], d["route"], d["reason"],
+                         d["level"], d["card_id"], d["writer_kind"], d.get("ruling_output_id"), d["set_revision"],
+                         json.dumps(d["trace"]), None, created))
+    ids = [d["decision_id"] for d in decisions]
+    rows = []
+    for row in con.execute("SELECT decision_id, unit_id, hub_entry, route, reason_code, level, card_id, writer_kind, revision "
+                           "FROM decisions WHERE decision_id IN (%s)" % ",".join("?" * len(ids)), ids):
+        rows.append(dict(zip(("decision_id", "unit_id", "candidate_id", "route", "reason", "level", "card_id", "writer_kind",
+                              "set_revision"), row)))
+    con.close()
+    return rows
 
 
 def tables(path=DEFAULT):
