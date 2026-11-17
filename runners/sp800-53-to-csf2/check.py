@@ -10,8 +10,8 @@
         events.jsonl and accounting.jsonl into OUTPUT, plus the operation's own artifacts. Only provider
         responses are fixtures; the cards, engine, store, identities, guard and events are the run's own.
 
-Operations (item 5): gates, protocol, gold, provider_call, triad. seed, conformance, replay and policy
-arrive with items 6 to 9 and refuse with exit 2 until then.
+Operations: gates, protocol, gold, provider_call, triad (item 5) and seed, replay, policy, conformance
+(fixture_ops.py, items 7 to 9).
 
 What the harness is built on: FixtureAdapter subclasses Adapter in runners/sp800-53-to-csf2/providers.py and
 replaces only _send, _usage and _content (the guard, ceilings, identities, accounting rows and events are
@@ -43,7 +43,7 @@ def load(name):
     return mod
 
 
-engine, providers, store = load("engine"), load("providers"), load("store")
+engine, providers, store, fixture_ops = load("engine"), load("providers"), load("store"), load("fixture_ops")
 cards = engine.cards          # one module object: the engine and the harness read the same card sets
 D = providers.D
 FORBIDDEN = {"proposal", "proposals", "vote", "votes", "confidence", "route", "prediction", "predictions",
@@ -371,7 +371,11 @@ def score(case):
 
 
 OPERATIONS = {"provider_call": Harness.provider_call, "triad": Harness.triad, "protocol": Harness.protocol,
-              "gold": Harness.gold, "gates": Harness.gates}
+              "gold": Harness.gold, "gates": Harness.gates,
+              "seed": lambda h, p: fixture_ops.seed(h, p, engine, providers, store),
+              "replay": lambda h, p: fixture_ops.replay(h, p, engine, providers),
+              "policy": lambda h, p: fixture_ops.policy(h, p, engine, providers, FixtureAdapter, fixture_protocol),
+              "conformance": lambda h, p: fixture_ops.conformance(h, p, card_table, cards)}
 
 
 def main(argv):

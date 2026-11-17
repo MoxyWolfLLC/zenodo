@@ -44,7 +44,7 @@ DECODING = {"openai": {"reasoning_effort": "none"}, "anthropic": {"thinking": {"
 WIRE_NAMES = {"anthropic/claude-haiku-5.5": "claude-haiku-5-5"}   # the protocol's id is the identity; this is the provider's spelling   # gpt-6-luna reasons into its output ceiling otherwise; recorded on every row
 MILLION = Decimal(1_000_000)
 
-PROMPT_VERSIONS = {"extraction": "extract-v1", "proposal": "propose-v1", "vote": "vote-v1", "council": "council-v1"}
+PROMPT_VERSIONS = {"extraction": "extract-v1", "proposal": "propose-v1", "vote": "vote-v1", "council": "council-v1", "audit": "audit-v1"}
 PROMPT_VARIANTS = {"proposal": ["propose-v1", "propose-v2"]}   # the wordings calibration may choose between
 
 PROMPTS = {
@@ -68,6 +68,9 @@ PROMPTS = {
                 "with no words before or after it."),
     "council-v1": ("{rubric}\n\nUnit {unit_id}: {unit_text}\nContext: {context}\nCandidate subcategory {hub_id}: {hub_text}\n"
                    "Rule the relationship. Return JSON {{\"level\": one of {levels} or {null}, \"reason\": short}}."),
+    "audit-v1": ("{rubric}\n\nUnit {unit_id} (family {family}): {unit_text}\nThe run recorded this unit under card {card}: {meaning}. "
+                 "Rule from the statement alone whether that record is correct. Return only the JSON object "
+                 "{{\"ruling\": \"correct\" or \"error\", \"reason\": short}}."),
 }
 
 
@@ -265,7 +268,7 @@ class Adapter:
                 self._reserve(provider, charge, +1)
             self.event("call_started", role=role, stage=base["stage"], provider=provider, model=base["model"],
                        transport=self.transport.kind, question_identity=base["question_identity"]["id"],
-                       protocol_sha256=self.protocol_sha256, attempt=attempt + 1,
+                       protocol_sha256=self.protocol_sha256, call_attempt=attempt + 1,
                        **{k: v for k, v in base.items() if k not in BASE_KEYS})
             try:
                 return send(), remaining
@@ -278,20 +281,20 @@ class Adapter:
                     with self._lock:
                         self.record({**base, "refused": False, "evidence": "unpriced", "charged_usd": money(charge),
                                      "tokens_in": None, "tokens_out": None, "max_expected_charge_usd": money(charge),
-                                     "remaining_usd": money(remaining), "failure": str(e)[:200], "attempt": attempt + 1})
+                                     "remaining_usd": money(remaining), "failure": str(e)[:200], "call_attempt": attempt + 1})
                         self._reserve(provider, charge, -1)
                     raise
                 self._release(provider, charge)
                 retry = e.retryable and attempt < len(BACKOFF)
                 self.event("call_failed", role=role, stage=base["stage"], provider=provider, model=base["model"],
-                           status=e.status, attempt=attempt + 1, retry=retry)
+                           status=e.status, call_attempt=attempt + 1, retry=retry)
                 if not retry:
                     raise
             except BaseException as e:   # anything the transport did not classify: the request may have left, charge the ceiling
                 with self._lock:
                     self.record({**base, "refused": False, "evidence": "unpriced", "charged_usd": money(charge),
                                  "tokens_in": None, "tokens_out": None, "max_expected_charge_usd": money(charge),
-                                 "remaining_usd": money(remaining), "failure": f"{type(e).__name__}: {e}"[:200], "attempt": attempt + 1})
+                                 "remaining_usd": money(remaining), "failure": f"{type(e).__name__}: {e}"[:200], "call_attempt": attempt + 1})
                     self._reserve(provider, charge, -1)
                 raise
             time.sleep(BACKOFF[attempt])
@@ -452,11 +455,11 @@ class Adapter:
             return "".join(b.get("text", "") for b in raw["content"])
         if provider == "google":
             return "".join(p.get("text", "") for p in raw["candidates"][0]["content"]["parts"])
-        return raw["choices"][0]["message"]["content"]
+        return raw["choices"][0]["message"].get("content") or ""   # null content (a refusal, a reasoning-only reply) parses as an error, not a crash
 
     @staticmethod
     def _parse(text):
-        t = text.strip()
+        t = (text or "").strip()
         if t.startswith("```"):
             t = t.strip("`")
             t = t[t.find("{"):]
@@ -464,7 +467,7 @@ class Adapter:
         try:
             return json.loads(t[start:end + 1])
         except Exception:
-            return {"parse_error": True, "raw": text[:500]}
+            return {"parse_error": True, "raw": (text or "")[:500]}
 
     # ---- the council --------------------------------------------------------------------------
     def council(self, packet, question_identity, evidence_identity, **context):

@@ -178,7 +178,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(out["level"], "subset_of"); self.assertEqual(out["reason"], "majority")
         self.assertEqual([e["role"] for e in self.rows(self.ev)], ["council"] * 3)
         self.stub.answers["api.anthropic.com"] = {"content": [{"text": '{"level": "equal"}'}], "usage": {"input_tokens": 1, "output_tokens": 1}}
-        by_model = {"google/gemini-2.5-flash-lite": "intersects_with", "mistralai/mistral-large-4-0": "superset_of"}
+        by_model = {"google/gemini-2.5-flash-lite": "intersects_with", "mistralai/mistral-large-2512": "superset_of", "mistralai/mistral-large-4-0": "superset_of"}
         self.stub.answers["openrouter.ai"] = lambda body: {"choices": [{"message": {"content": json.dumps({"level": by_model[body["model"]]})}}],
                                                            "usage": {"cost": 0.0001}}
         out = self.a.council(packet, self.q, "e1")
@@ -267,7 +267,7 @@ class AdapterTests(unittest.TestCase):
         self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
         events = self.rows(self.ev)
         self.assertEqual([e["event"] for e in events], ["call_started", "call_failed", "call_started"])
-        self.assertEqual([e.get("attempt") for e in events], [1, 1, 2])
+        self.assertEqual([e.get("call_attempt") for e in events], [1, 1, 2])
         rows = self.rows()
         self.assertEqual(len(rows), 1); self.assertEqual(rows[0]["evidence"], "usage_priced")
         self.stub.answers["api.openai.com"] = lambda body: (_ for _ in ()).throw(
@@ -383,6 +383,20 @@ class AdapterTests(unittest.TestCase):
         self.stub.answers["openrouter.ai"] = {"choices": [{"message": {"content": "{}"}}], "usage": {"cost": "free"}}
         self.a.call("vote", "mistralai/mistral-small-2603", "vote-v1", "p", self.q, "e1")
         self.assertEqual(self.rows()[-1]["evidence"], "unpriced", "a cost that is not a number is no price")
+
+
+    def test_a_stage_context_named_attempt_does_not_collide_with_the_call_attempt(self):
+        """The extraction stage passes attempt=<n> as context (found by the first evaluation-pass extraction)."""
+        self.a.call("extraction", "openai/gpt-6-luna", "extract-v1", "p", self.q, None, unit_release="ac-1@x", attempt=1)
+        e = [e for e in self.rows(self.ev) if e["event"] == "call_started"][-1]
+        self.assertEqual((e["attempt"], e["call_attempt"]), (1, 1))
+        self.assertEqual(self.rows()[-1]["attempt"], 1)
+
+
+class NullContent(unittest.TestCase):
+    def test_null_content_parses_as_error(self):
+        self.assertEqual(providers.Adapter._content("openai", {"choices": [{"message": {"content": None}}]}), "")
+        self.assertTrue(providers.Adapter._parse(None)["parse_error"])
 
 
 if __name__ == "__main__":

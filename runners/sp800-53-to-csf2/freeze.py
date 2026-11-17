@@ -47,12 +47,21 @@ PRICES = {
     "anthropic/claude-haiku-5.5":   {"in": 0.100, "out": 0.500, "provider": "anthropic", "family": "anthropic"},
     "google/gemini-2.5-flash-lite": {"in": 0.100, "out": 0.400, "provider": "openrouter", "family": "google"},
     "mistralai/mistral-small-2603": {"in": 0.150, "out": 0.600, "provider": "openrouter", "family": "mistralai"},
-    "mistralai/mistral-large-4-0":  {"in": 0.700, "out": 2.100, "provider": "openrouter", "family": "mistralai"},
+    "mistralai/mistral-large-2512": {"in": 0.500, "out": 1.500, "provider": "openrouter", "family": "mistralai"},
 }
 PRICE_SOURCE = "https://openrouter.ai/api/v1/models retrieved 2026-11-16, re-read 2026-11-17; usd per 1e6 tokens"
 ROUTING_NOTE = ("Gemini is reached through OpenRouter (Google's direct API unavailable 2026-11-17; Dorian's instruction); "
                 "the council's Google voice is gemini-2.5-flash-lite so the OpenRouter worst case stays under its $20 cap. "
-                "Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families.")
+                "Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families. "
+                "The council's Mistral voice is mistral-large-2512, not mistral-large-4-0: Large 4 reasons before it answers, cannot be told not to, "
+                "and spent the whole 250-token council ceiling on reasoning on every evaluation packet (2,353 of 2,357 replies empty).")
+
+# The protocol this one replaces, and what changed: the calibration ran under it, and config.frozen.json pins it.
+# tests_run accepts that pin when nothing calibration reads changed (SUPERSEDES["changed"] names only council and budget keys).
+SUPERSEDES = {"sha256": "34523becd7a3ae762f966ca24e6057ea2e9f87928388111ae020c79de9c97687",
+              "changed": ["roles.council.models", "budget", "routing_note", "supersedes"],
+              "why": "the council's Mistral voice (mistral-large-4-0 reasoned through the 250-token council ceiling and answered nothing); "
+                     "calibration uses no council voice, so its frozen configuration stands"}
 
 ROLES = {
     # input ceilings are byte-length bounds (providers.token_bound): the longest control statement is 1,859 chars
@@ -61,7 +70,7 @@ ROLES = {
     "proposal":   {"model": "openai/gpt-6-luna", "in": 3000, "out": 200},
     "vote":       {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-small-2603"],
                    "in": 2800, "out": 150},
-    "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-large-4-0"],
+    "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-large-2512"],
                    "in": 3200, "out": 250},
 }
 
@@ -301,7 +310,7 @@ def main(argv):
         "calibration": {"revisions_cap": CALIBRATION_REVISIONS, "tunes": ["prompt wording", "confidence threshold"],
                         "labels": "pinned NIST informative references for the calibration split, link versus no link only"},
         "ss_audit": {"per_card": SS_AUDIT_PER_CARD, "cards": ["SS-scope", "SS-retrieval"], "pooled_per_split": True, "selection": "selection_rules.ss_audit"},
-        "roles": ROLES, "budget": b, "routing_note": ROUTING_NOTE,
+        "roles": ROLES, "budget": b, "routing_note": ROUTING_NOTE, "supersedes": SUPERSEDES,
     }
     raw = json.dumps(protocol, indent=2, sort_keys=True).encode()
     open(os.path.join(HERE, "protocol.json"), "wb").write(raw)
