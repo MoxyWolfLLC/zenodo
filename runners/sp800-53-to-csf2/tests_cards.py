@@ -93,8 +93,17 @@ class Engine(unittest.TestCase):
         for seat in ({"provider": "openai", "answer": "equal"}, {"provider": "anthropic", "answer": "equal"}):
             d = engine.run_case({**base, "votes": good[:2] + [seat]}, S)
             self.assertEqual((d["route"], d["reason"], d["card_id"]), ("REVIEW", "incomplete_triad", "T1"))
-        self.assertEqual(engine.panel_violations(good[:2] + [{"provider": "openai"}], "openai"), [(2, "proposer_seat")])
-        self.assertEqual(engine.panel_violations(good[:2] + [good[0]], "openai"), [(2, "duplicate_seat")])
+        for seat in ({"answer": "equal"}, {"provider": None, "answer": "equal"}, {"provider": "mistral", "answer": "equal"}):
+            d = engine.run_case({**base, "votes": good[:2] + [seat]}, S)
+            self.assertEqual((d["route"], d["reason"], d["card_id"]), ("REVIEW", "incomplete_triad", "T1"))
+        d = engine.run_case({**base, "votes": [{"provider": None, "answer": "equal"}] * 3}, S)
+        self.assertEqual((d["route"], d["reason"], d["card_id"]), ("REVIEW", "incomplete_triad", "T1"))
+        panel = {"anthropic", "google", "openrouter"}
+        self.assertEqual(engine.panel_violations(good[:2] + [{"provider": "openai"}], "openai", panel), [(2, "proposer_seat")])
+        self.assertEqual(engine.panel_violations(good[:2] + [good[0]], "openai", panel), [(2, "duplicate_seat")])
+        self.assertEqual(engine.panel_violations(good[:2] + [{"answer": "equal"}], "openai", panel), [(2, "missing_provider")])
+        self.assertEqual(engine.panel_violations(good[:2] + [{"provider": "mistral"}], "openai", panel), [(2, "not_seated")])
+        self.assertEqual(engine.panel_violations(good, "openai", panel), [])
 
 
 if __name__ == "__main__":

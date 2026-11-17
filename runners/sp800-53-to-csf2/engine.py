@@ -44,21 +44,29 @@ def vote_answer(v):
     return {"answer": None if a == cards.NULL else a, "refused": bool(v.get("refused"))}   # a refused vote stays invalid
 
 
-def panel_violations(votes, proposer_provider):
-    """Seats the triad never counts: a vote by the proposer's provider, or a second vote from a provider already
-    seated. Returns [(index, reason)]. The triad operation refuses to store these; run_case treats a stored one
-    as invalid, so the triad is incomplete (T1) rather than decided by it."""
+def panel_violations(votes, proposer_provider, panel=None):
+    """Seats the triad never counts, as [(index, reason)]: a vote with no provider (missing_provider), a vote
+    by the proposer's provider (proposer_seat), a provider not on the configured panel (not_seated, when a
+    panel is given) and a second vote from a provider already seated (duplicate_seat). The check fails closed:
+    identity is required before an answer is read. The triad operation refuses to store a violating vote;
+    run_case treats a stored one as invalid, so the triad is incomplete (T1) rather than decided by it."""
     seen, out = set(), []
     for i, v in enumerate(votes):
-        p = (v or {}).get("provider") if isinstance(v, dict) else None
-        if p is None:
-            continue
-        if p == proposer_provider:
+        p = v.get("provider") if isinstance(v, dict) else None
+        if not isinstance(p, str) or not p:
+            out.append((i, "missing_provider"))
+        elif p == proposer_provider:
             out.append((i, "proposer_seat"))
+        elif panel is not None and p not in panel:
+            out.append((i, "not_seated"))
         elif p in seen:
             out.append((i, "duplicate_seat"))
         seen.add(p)
     return out
+
+
+def panel_of(S):
+    return {m.split("/")[0] for m in S["triad"]}
 
 
 def decision_id(unit_id, candidate_id, revision):
@@ -107,7 +115,7 @@ def run_case(case, S, n=None):
         cid, (route, reason) = pick(S, "curator", {"cur": None}, trace)
     elif route == "NEXT":
         raw = case.get("votes") or []
-        bad = dict(panel_violations(raw, S["proposer"].split("/")[0]))
+        bad = dict(panel_violations(raw, S["proposer"].split("/")[0], panel_of(S)))
         votes = [{"refused": True, "seat": bad[i]} if i in bad else vote_answer(v) for i, v in enumerate(raw)]
         cid, (route, reason) = pick(S, "triad", {"votes": votes, "n": n}, trace)
         level = cards.plurality(votes, n) if cid == "T3" else None
