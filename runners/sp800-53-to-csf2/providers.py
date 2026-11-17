@@ -221,7 +221,7 @@ class Adapter:
         elif estimated_in > tin:
             reason = f"input bound {estimated_in} tokens over ceiling {tin}"
         if reason:
-            print(f"refused: budget {remaining:.4f} ({reason})", file=sys.stderr)
+            print(f"refused: budget {remaining:.4f}", file=sys.stderr)   # exactly this line; the reason is on the row
             self.record({**base, "refused": True, "refusal": reason, "evidence": "refused", "usd": 0.0,
                          "tokens_in": 0, "tokens_out": 0, "max_charge": round(charge, 6)})
             raise BudgetRefused(reason)
