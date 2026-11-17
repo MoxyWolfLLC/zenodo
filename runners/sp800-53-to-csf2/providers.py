@@ -171,7 +171,9 @@ class Adapter:
                 for line in f:
                     if line.strip():
                         row = json.loads(line)
-                        usd = D(row.get("charged_usd", row.get("usd", 0)))
+                        if "charged_usd" not in row:
+                            raise ValueError(f"accounting row without charged_usd: {line[:80]}")   # never read as zero
+                        usd = D(row["charged_usd"])
                         total += usd
                         by_provider[row.get("provider")] = by_provider.get(row.get("provider"), Decimal(0)) + usd
         return total, by_provider

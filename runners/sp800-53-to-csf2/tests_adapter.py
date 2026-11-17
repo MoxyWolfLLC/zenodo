@@ -136,6 +136,12 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(before - after, Decimal("0.02") / Decimal(1_000_000))
         self.assertNotIn("e-", self.rows()[-1]["charged_usd"])   # plain decimal text, exact
 
+    def test_a_ledger_row_without_charged_usd_is_refused_not_read_as_zero(self):
+        with open(self.acc, "w") as f:
+            f.write(json.dumps({"usd": 0.0, "provider": "openai"}) + "\n")
+        with self.assertRaises(ValueError):
+            self.a.remaining("openai")
+
     def test_unpriced_response_is_charged_at_the_ceiling(self):
         self.stub.answers["api.openai.com"] = {"choices": [{"message": {"content": "{}"}}]}
         self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
