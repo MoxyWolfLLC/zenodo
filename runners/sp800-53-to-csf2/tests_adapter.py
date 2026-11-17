@@ -12,6 +12,7 @@ import json
 import os
 import re
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stderr
 from decimal import Decimal
@@ -212,6 +213,77 @@ class AdapterTests(unittest.TestCase):
     def test_identity_is_order_independent_and_stage_bound(self):
         a = providers.identity("vote", b=1, a=2); b = providers.identity("vote", a=2, b=1)
         self.assertEqual(a["id"], b["id"]); self.assertNotEqual(a["id"], providers.identity("ruling", a=2, b=1)["id"])
+
+
+    def test_provider_allowance_holds_under_concurrent_calls(self):
+        """F1 (review 20261117-084733): two calls that each fit the provider allowance alone must not both pass."""
+        import threading
+        caps = self.a.provider_caps
+        one = self.a.max_charge("google/gemini-2.5-flash-lite", *self.a.ceilings("vote"))
+        self.spend(str(caps["openrouter"] - one - Decimal("0.0000001")), provider="openrouter")   # room for exactly one
+        in_flight, released = threading.Event(), threading.Event()
+        slow = self.stub.answers["openrouter.ai"]
+
+        def held(body):
+            in_flight.set()               # the first request is out and not yet settled
+            released.wait(5)
+            return slow
+        self.stub.answers["openrouter.ai"] = held
+        results, errs = [], []
+
+        def first():
+            results.append(self.a.call("vote", "google/gemini-2.5-flash-lite", "vote-v1", "p", self.q, "e1"))
+
+        def second():
+            in_flight.wait(5)
+            err = io.StringIO()
+            try:
+                with redirect_stderr(err):
+                    results.append(self.a.call("vote", "google/gemini-2.5-flash-lite", "vote-v1", "p", self.q, "e1"))
+            except providers.BudgetRefused:
+                errs.append(err.getvalue())
+            released.set()
+        threads = [threading.Thread(target=first), threading.Thread(target=second)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join(10)
+        self.assertEqual((len(results), len(errs)), (1, 1))
+        self.assertEqual(len(self.stub.requests), 1)
+
+    def test_every_attempt_is_accounted(self):
+        """F2 (review 20261117-084733): an answered error is logged and retried on its own guard; an unknown outcome
+        is charged at the ceiling and not retried."""
+        providers.BACKOFF = (0, 0, 0, 0, 0, 0)
+        calls = {"n": 0}
+        good = OPENAI
+
+        def flaky(body):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise providers.TransportError("HTTP 429", answered=True, retryable=True, status=429)
+            return good
+        self.stub.answers["api.openai.com"] = flaky
+        self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
+        events = self.rows(self.ev)
+        self.assertEqual([e["event"] for e in events], ["call_started", "call_failed", "call_started"])
+        self.assertEqual([e.get("attempt") for e in events], [1, 1, 2])
+        rows = self.rows()
+        self.assertEqual(len(rows), 1); self.assertEqual(rows[0]["evidence"], "usage_priced")
+        self.stub.answers["api.openai.com"] = lambda body: (_ for _ in ()).throw(
+            providers.TransportError("timed out", answered=False, retryable=False))
+        with self.assertRaises(providers.TransportError):
+            self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
+        last = self.rows()[-1]
+        self.assertEqual(last["evidence"], "unpriced"); self.assertIn("timed out", last["failure"])
+        self.assertEqual(Decimal(last["charged_usd"]), self.a.max_charge("openai/gpt-6-luna", *self.a.ceilings("proposal")))
+        self.assertEqual(self.a._inflight.get("*", Decimal(0)), Decimal(0))
+        self.stub.answers["api.openai.com"] = lambda body: (_ for _ in ()).throw(
+            providers.TransportError("HTTP 400", answered=True, retryable=False, status=400))
+        with self.assertRaises(providers.TransportError):
+            self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "p", self.q, "e1")
+        self.assertEqual(len(self.rows()), 2, "an answered 400 bills nothing and adds no row")
+        self.assertEqual(self.rows(self.ev)[-1]["event"], "call_failed")
 
 
 if __name__ == "__main__":

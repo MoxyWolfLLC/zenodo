@@ -127,36 +127,43 @@ KEYS = {
 }
 
 
+BASE_KEYS = {"stage", "provider", "family", "model", "prompt_version", "question_identity", "evidence_identity", "decoding"}
+BACKOFF = (2, 4, 8, 16, 32, 60)   # seconds between attempts the provider answered with 429, 502, 503 or 504
+
+
 def identity(stage, **fields):
     """The per-stage question identity: the fields the plan names for that stage, hashed in sorted order."""
     body = json.dumps({"stage": stage, **fields}, sort_keys=True)
     return {"stage": stage, "fields": fields, "id": hashlib.sha256(body.encode()).hexdigest()[:16]}
 
 
-class Transport:
-    """Real HTTP. Tests and the fixture harness replace it; replay mode replaces it with a refuser."""
-    kind = "live"
+class TransportError(RuntimeError):
+    """A request that left and did not return a usable response. `answered` is True when the provider answered
+    with an error status (nothing billed; retryable when `retryable`), False when the outcome is unknown (a timeout
+    or a dropped connection after the request left): the adapter charges the ceiling for those, since it cannot
+    prove the provider did not bill, and never retries them."""
 
-    RETRY = (429, 500, 502, 503, 504)   # ponytail: bounded backoff (2, 4, 8, 16, 32, 60 s); anything else is the caller's
-    BACKOFF = (2, 4, 8, 16, 32, 60)
+    def __init__(self, msg, answered, retryable, status=None):
+        super().__init__(msg)
+        self.answered, self.retryable, self.status = answered, retryable, status
+
+
+class Transport:
+    """Real HTTP, one attempt per call. Tests and the fixture harness replace it; replay mode replaces it with a
+    refuser. Retrying is the adapter's: every attempt is guarded, reserved and accounted."""
+    kind = "live"
+    RETRYABLE = (429, 502, 503, 504)   # the provider answered: it did not process the request
 
     def post(self, url, headers, body, timeout=120):
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", **headers})
-        for attempt in range(len(self.BACKOFF) + 1):
-            try:
-                with urllib.request.urlopen(req, timeout=timeout) as r:
-                    return json.loads(r.read().decode())
-            except urllib.error.HTTPError as e:
-                detail = e.read().decode()[:300]
-                if e.code in self.RETRY and attempt < len(self.BACKOFF):
-                    time.sleep(self.BACKOFF[attempt])
-                    continue
-                raise RuntimeError(f"{url}: HTTP {e.code}: {detail}")
-            except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
-                if attempt < len(self.BACKOFF):
-                    time.sleep(self.BACKOFF[attempt])
-                    continue
-                raise RuntimeError(f"{url}: {e}")
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            raise TransportError(f"{url}: HTTP {e.code}: {e.read().decode()[:300]}", answered=True,
+                                 retryable=e.code in self.RETRYABLE, status=e.code)
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+            raise TransportError(f"{url}: {e}", answered=False, retryable=False)
 
 
 class ReplayTransport:
@@ -190,7 +197,7 @@ class Adapter:
         self.transport = ReplayTransport(self.replay_counter) if replay else (transport or Transport())
         self._lock = threading.RLock()          # the guard and the ledger position are read and moved under it
         self._cache = None                      # (file size, total, by_provider): the ledger re-read only when it moved
-        self._inflight = Decimal(0)             # ceiling charges of calls sent and not yet settled
+        self._inflight = {}                     # ceiling charges of calls sent and not yet settled, globally and per biller
 
     # ---- budget -------------------------------------------------------------------------------
     def spend(self):
@@ -222,10 +229,51 @@ class Adapter:
     def remaining(self, provider=None):
         total, by_provider = self.spend()
         held = Decimal(0) if self.phase() == "deliverables" else self.reserve
-        remaining = self.cap - total - held - self._inflight    # a call in flight holds its ceiling until it settles
+        remaining = self.cap - total - held - self._inflight.get("*", Decimal(0))   # a call in flight holds its ceiling until it settles
         if provider in self.provider_caps:
-            remaining = min(remaining, self.provider_caps[provider] - by_provider.get(provider, Decimal(0)))
+            remaining = min(remaining, self.provider_caps[provider] - by_provider.get(provider, Decimal(0))
+                            - self._inflight.get(provider, Decimal(0)))
         return remaining
+
+    def _reserve(self, provider, charge, sign):
+        for key in ("*", provider):
+            self._inflight[key] = self._inflight.get(key, Decimal(0)) + sign * charge
+
+    def _attempts(self, base, charge, provider, bound, tin, role, send):
+        """Every attempt is guarded and reserved on its own; an attempt the provider answered with an error status
+        is logged (nothing billed) and retried with backoff when the status says so; an attempt whose outcome is
+        unknown is charged at the ceiling and not retried. Returns (raw response, remaining at the attempt)."""
+        for attempt in range(len(BACKOFF) + 1):
+            with self._lock:
+                remaining = self.remaining(provider)
+                self._guard(base, charge, remaining, bound, tin)
+                self._reserve(provider, charge, +1)
+            try:
+                self.event("call_started", role=role, stage=base["stage"], provider=provider, model=base["model"],
+                           transport=self.transport.kind, question_identity=base["question_identity"]["id"],
+                           protocol_sha256=self.protocol_sha256, attempt=attempt + 1,
+                           **{k: v for k, v in base.items() if k not in BASE_KEYS})
+                try:
+                    return send(), remaining
+                except ReplayViolation:
+                    self.event("outbound_attempt", role=role, stage=base["stage"], provider=provider)
+                    raise
+                except TransportError as e:
+                    if e.answered:
+                        self.event("call_failed", role=role, stage=base["stage"], provider=provider, model=base["model"],
+                                   status=e.status, attempt=attempt + 1, retry=e.retryable and attempt < len(BACKOFF))
+                    else:   # outcome unknown: the ceiling is charged, nothing is retried
+                        self.record({**base, "refused": False, "evidence": "unpriced", "charged_usd": money(charge),
+                                     "tokens_in": None, "tokens_out": None, "max_expected_charge_usd": money(charge),
+                                     "remaining_usd": money(remaining), "failure": str(e)[:200], "attempt": attempt + 1})
+                        raise
+                    if not (e.retryable and attempt < len(BACKOFF)):
+                        raise
+            finally:
+                with self._lock:
+                    self._reserve(provider, charge, -1)
+            time.sleep(BACKOFF[attempt])
+        raise AssertionError("unreachable")
 
     def family(self, model):
         """The model's maker: the seat identity for the triad and the council, whoever bills the call."""
@@ -294,24 +342,10 @@ class Adapter:
         base = {"stage": role, "provider": provider, "family": self.family(model), "model": model, "prompt_version": prompt_version,
                 "question_identity": question_identity, "evidence_identity": evidence_identity,
                 "decoding": DECODING.get(provider, {}), **context}
-        with self._lock:
-            remaining = self.remaining(provider)
-            self._guard(base, charge, remaining, token_bound(prompt), tin)
-            self._inflight += charge
-        try:
-            self.event("call_started", role="council" if role == "council" else "model", stage=role, provider=provider,
-                       model=model, transport=self.transport.kind, question_identity=question_identity["id"],
-                       protocol_sha256=self.protocol_sha256, **context)
-            try:
-                raw = self._send(provider, model, prompt, tout)
-            except ReplayViolation:
-                self.event("outbound_attempt", role="council" if role == "council" else "model", stage=role, provider=provider)
-                raise
-            usage, reported = self._usage(provider, raw)
-            self._settle(base, charge, remaining, usage, reported)   # the request completed: it is on the ledger before parsing
-        finally:
-            with self._lock:
-                self._inflight -= charge
+        raw, remaining = self._attempts(base, charge, provider, token_bound(prompt), tin, "council" if role == "council" else "model",
+                                        lambda: self._send(provider, model, prompt, tout))
+        usage, reported = self._usage(provider, raw)
+        self._settle(base, charge, remaining, usage, reported)   # the request completed: it is on the ledger before parsing
         text = self._content(provider, raw)
         return self._parse(text) if json_out else text
 
@@ -321,25 +355,12 @@ class Adapter:
         charge = self.max_charge(model, tin, tout)
         base = {"stage": "embedding", "provider": provider, "model": model, "prompt_version": None,
                 "question_identity": question_identity, "evidence_identity": None, **context}
-        with self._lock:
-            remaining = self.remaining(provider)
-            self._guard(base, charge, remaining, token_bound(text), tin)
-            self._inflight += charge
-        try:
-            self.event("call_started", role="retriever", stage="embedding", provider=provider, model=model,
-                       transport=self.transport.kind, question_identity=question_identity["id"],
-                       protocol_sha256=self.protocol_sha256, **context)
-            try:
-                raw = self.transport.post("https://api.openai.com/v1/embeddings", {"Authorization": f"Bearer {KEYS['openai']()}"},
-                                          {"model": model.split("/", 1)[1], "input": text})
-            except ReplayViolation:
-                self.event("outbound_attempt", role="retriever", stage="embedding", provider=provider)
-                raise
-            tokens = (raw.get("usage") or {}).get("prompt_tokens")
-            self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
-        finally:
-            with self._lock:
-                self._inflight -= charge
+        raw, remaining = self._attempts(base, charge, provider, token_bound(text), tin, "retriever",
+                                        lambda: self.transport.post("https://api.openai.com/v1/embeddings",
+                                                                    {"Authorization": f"Bearer {KEYS['openai']()}"},
+                                                                    {"model": model.split("/", 1)[1], "input": text}))
+        tokens = (raw.get("usage") or {}).get("prompt_tokens")
+        self._settle(base, charge, remaining, {"in": tokens, "out": 0 if tokens is not None else None}, None)
         return raw["data"][0]["embedding"]
 
     # ---- providers ----------------------------------------------------------------------------

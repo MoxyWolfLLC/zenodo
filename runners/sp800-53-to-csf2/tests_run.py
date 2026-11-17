@@ -56,5 +56,14 @@ class Calibration(unittest.TestCase):
         self.assertEqual({self.split[u] for u in units}, {"calibration"})
 
 
+    def test_calibrate_refuses_to_run_over_a_frozen_calibration(self):
+        import subprocess, sys
+        r = subprocess.run([sys.executable, "-I", "run.py", "calibrate", "--units", "1", "--revisions", "1"], cwd=HERE,
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("already frozen", r.stderr)
+        self.assertEqual(len(rows("calibration.jsonl")), len(self.cal), "nothing appended")
+
+
 if __name__ == "__main__":
     unittest.main()

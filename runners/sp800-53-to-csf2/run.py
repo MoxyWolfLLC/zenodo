@@ -11,6 +11,15 @@ touches and nothing else.
         with its cost from the adapter's rows; the chosen configuration goes to config.frozen.json with its
         hash. stdout prints per-revision cost and the chosen configuration. Exit 0; 4 on a budget refusal.
 
+A finished calibration (config.frozen.json present) is never re-run over itself: calibrate refuses with exit 2 and
+says what to remove. An unfinished one (calibration.jsonl without config.frozen.json) resumes at the next revision
+of the schedule with the recorded rows kept, so revision ids stay unique and within the cap.
+
+What it reads: runners/sp800-53-to-csf2/protocol.json (the sample and its splits, roles, budget), index.json (the hub
+vectors), data/sp800-53r5_catalog.json (statements), runners/sp800-53-to-csf2/reference_semantics.json (the pinned
+NIST informative references from item 1: control-level entries with csf_element, target_oscal_id, csf_element_status,
+granularity; the weak labels), runners/sp800-53-to-csf2/providers.py, engine.py, store.py, retrieve.py.
+
 Stage identities (what a stored output is keyed by):
   extraction  unit release, attempt, prompt version
   retrieval   unit release, retriever, index hash, hub revision, k
@@ -329,8 +338,22 @@ def calibrate(args):
     for u in units:
         run.unit_row(u, "calibration")
     unit_ids = [u["id"] for u in units]
+    if os.path.isfile(CONFIG):
+        print(f"calibration already frozen: {CONFIG} exists; remove it and calibration.jsonl to calibrate again", file=sys.stderr)
+        sys.exit(2)
     rows, best = [], None
+    if os.path.isfile(CALIBRATION):                      # resume: keep the recorded revisions, continue the schedule
+        with open(CALIBRATION, encoding="utf-8") as f:
+            rows = [json.loads(l) for l in f if l.strip()]
+        for r in rows:
+            key = (round(r["score"]["f1"], 6), r["c_min"])
+            if best is None or key > best["key"]:
+                best = {"key": key, "c_min": r["c_min"], "prompt_version": r["prompt_version"], "revision": r["revision"], "score": r["score"]}
+        if rows:
+            print(f"resuming after {len(rows)} recorded revision(s): {', '.join(r['revision'] for r in rows)}")
     for n, (prompt_version, c_min) in enumerate(SCHEDULE[: args.revisions], 1):
+        if n <= len(rows):
+            continue
         if c_min is None:
             c_min = best["c_min"]
         rev = f"cal-{n}"
