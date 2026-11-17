@@ -41,7 +41,7 @@ def vote_answer(v):
     if not isinstance(v, dict) or "answer" not in v:
         return {"refused": True}
     a = v["answer"]
-    return {"answer": None if a == cards.NULL else a}
+    return {"answer": None if a == cards.NULL else a, "refused": bool(v.get("refused"))}   # a refused vote stays invalid
 
 
 def decision_id(unit_id, candidate_id, revision):

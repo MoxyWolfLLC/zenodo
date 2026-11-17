@@ -62,5 +62,23 @@ class CardLists(unittest.TestCase):
             self.assertFalse(e1[2]({"prop": {"needs_hub": True}, "hub_att": hub_att}, S["params"]))
 
 
+class Engine(unittest.TestCase):
+    def test_a_refused_vote_never_completes_the_triad(self):
+        engine = load("csf2_engine", os.path.join(HERE, "engine.py"))
+        unit = {"id": "AC-1", "type": "control", "text": "Maintain an inventory."}
+        votes = [{"provider": "anthropic", "answer": "equal"}, {"provider": "google", "answer": "equal"},
+                 {"provider": "openrouter", "answer": "equal", "refused": True}]
+        case = {"unit": unit, "candidate": {"id": "PR.AA-01"}, "extraction": {"complete": True, "work_object": True},
+                "retrieval": {"candidate_ids": ["PR.AA-01"]},
+                "proposal": {"answer": "equal", "confidence": 0.9, "quotes": ["inventory"], "conflict": False}, "votes": votes}
+        for closed in (ours.GATES, []):
+            S = ours.make("r1", "openai/p", ["anthropic/a", "google/g", "openrouter/m"], closed=closed)
+            d = engine.run_case(case, S)
+            self.assertEqual((d["route"], d["reason"], d["card_id"], d["level"]), ("REVIEW", "incomplete_triad", "T1", None))
+        votes[2]["refused"] = False
+        S = ours.make("r1", "openai/p", ["anthropic/a", "google/g", "openrouter/m"], closed=[])
+        self.assertEqual(engine.run_case(case, S)["reason"], "auto_accept")
+
+
 if __name__ == "__main__":
     unittest.main()
