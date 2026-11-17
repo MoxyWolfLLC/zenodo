@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS hub_entries (
 CREATE TABLE IF NOT EXISTS extractions (
   output_id TEXT PRIMARY KEY, unit_release TEXT NOT NULL, attempt INTEGER NOT NULL, identity TEXT NOT NULL,
   activities TEXT NOT NULL, quotes TEXT NOT NULL, prompt_version TEXT NOT NULL, created TEXT NOT NULL,
+  complete INTEGER, work_object INTEGER, provider TEXT, model TEXT,
   UNIQUE (unit_release, attempt));
 CREATE TABLE IF NOT EXISTS retrievals (
   output_id TEXT PRIMARY KEY, unit_release TEXT NOT NULL, extraction_output_id TEXT NOT NULL, retriever TEXT NOT NULL,
@@ -40,21 +41,25 @@ CREATE TABLE IF NOT EXISTS retrievals (
 CREATE TABLE IF NOT EXISTS proposals (
   output_id TEXT PRIMARY KEY, unit_release TEXT NOT NULL, extraction_output_id TEXT NOT NULL, hub_entry TEXT NOT NULL,
   hub_revision INTEGER NOT NULL, identity TEXT NOT NULL, level TEXT NOT NULL, quotes TEXT NOT NULL,
-  confidence REAL, prompt_version TEXT NOT NULL, created TEXT NOT NULL);
+  confidence REAL, prompt_version TEXT NOT NULL, created TEXT NOT NULL, conflict INTEGER, needs_hub INTEGER,
+  provider TEXT, model TEXT);
 CREATE TABLE IF NOT EXISTS votes (
   output_id TEXT PRIMARY KEY, proposal_output_id TEXT NOT NULL, voter TEXT NOT NULL, evidence_identity TEXT NOT NULL,
   quoted_spans TEXT NOT NULL, vote_params TEXT NOT NULL, identity TEXT NOT NULL, vote TEXT NOT NULL,
-  quotes_verbatim INTEGER, confidence REAL, prompt_version TEXT NOT NULL, revision TEXT NOT NULL, created TEXT NOT NULL);
+  quotes_verbatim INTEGER, confidence REAL, prompt_version TEXT NOT NULL, revision TEXT NOT NULL, created TEXT NOT NULL,
+  provider TEXT, unit_release TEXT, hub_entry TEXT, superseded_by TEXT);
 CREATE TABLE IF NOT EXISTS rulings (
   output_id TEXT PRIMARY KEY, proposal_output_id TEXT NOT NULL, route TEXT NOT NULL, reason_code TEXT NOT NULL,
   packet_output_ids TEXT NOT NULL, identity TEXT NOT NULL, decision TEXT NOT NULL, card TEXT NOT NULL,
-  revision TEXT NOT NULL, created TEXT NOT NULL);
+  revision TEXT NOT NULL, created TEXT NOT NULL, level TEXT, origin TEXT, unit_release TEXT, hub_entry TEXT, superseded_by TEXT);
 CREATE TABLE IF NOT EXISTS decisions (
   decision_id TEXT PRIMARY KEY, unit_id TEXT NOT NULL, unit_release TEXT, hub_entry TEXT, route TEXT NOT NULL,
   reason_code TEXT NOT NULL, level TEXT, card_id TEXT NOT NULL, writer_kind TEXT NOT NULL, ruling_output_id TEXT,
   revision TEXT NOT NULL, trace TEXT NOT NULL, superseded_by TEXT, created TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sets (
-  revision TEXT PRIMARY KEY, active INTEGER NOT NULL, sha256 TEXT NOT NULL, gates TEXT NOT NULL, created TEXT NOT NULL);
+  revision TEXT PRIMARY KEY, active INTEGER NOT NULL, sha256 TEXT NOT NULL, gates TEXT NOT NULL, created TEXT NOT NULL, spec TEXT);
+CREATE TABLE IF NOT EXISTS frozen (
+  key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS council_rulings (
   packet_id TEXT NOT NULL, voice TEXT NOT NULL, packet_class TEXT NOT NULL, split TEXT NOT NULL, blind INTEGER NOT NULL,
   level TEXT NOT NULL, reason TEXT, session TEXT NOT NULL, created TEXT NOT NULL, PRIMARY KEY (packet_id, voice, session));
