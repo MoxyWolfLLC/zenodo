@@ -133,7 +133,7 @@ class AdapterTests(unittest.TestCase):
         err = io.StringIO()
         with redirect_stderr(err), self.assertRaises(providers.BudgetRefused):
             self.a.call("proposal", "openai/gpt-6-luna", "propose-v1", "x" * 4000, self.q, "e1")
-        self.assertTrue(err.getvalue().startswith("refused: budget ")); self.assertIn("over ceiling", err.getvalue())
+        self.assertRegex(err.getvalue(), r"^refused: budget [0-9.]+\n$"); self.assertIn("over ceiling", self.rows()[-1]["refusal"])
         self.assertEqual(len(self.stub.requests), 0)
         self.assertEqual(self.rows()[-1]["evidence"], "refused")
         with redirect_stderr(io.StringIO()), self.assertRaises(providers.BudgetRefused):
