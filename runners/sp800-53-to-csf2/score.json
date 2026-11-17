@@ -1,42 +1,43 @@
 {
  "anchoring": {
   "agree_assisted": 0.7667,
-  "agree_blind": 0.8667,
-  "blind_wins_among_discordant": 3,
-  "difference": 0.1,
-  "discordant": 3,
+  "agree_blind": 0.7,
+  "blind_wins_among_discordant": 0,
+  "difference": -0.0667,
+  "discordant": 2,
   "pairs": 30,
   "seed": "ad57257d431704cb8adac1108f468e8b3730ba2dd2ae770083790c1327062d45",
   "wilson_95": [
-   0.4385,
-   1.0
+   0.0,
+   0.6576
   ]
  },
  "c_min": 0.7,
  "config_sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359",
  "council_agreement": {
   "double_ruled_n": 254,
-  "krippendorff_alpha": 0.685559
+  "krippendorff_alpha": 0.923703
  },
  "coverage": {
   "definition": "share of the split's units with at least one proposal the council ruled a true link (a level)",
-  "share": 0.475,
+  "share": 0.775,
   "units": 160,
-  "with_a_true_link": 76
+  "with_a_true_link": 124
  },
  "gold_packets": 1272,
  "missed_links": {
   "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson)",
   "draw_n": 800,
-  "estimate": 0.406346,
-  "non_retrieved_draw_true_links": 4,
+  "estimate": 0.554731,
+  "non_retrieved_draw_true_links": 18,
   "non_retrieved_weight": 19.6,
-  "retrieved_true_links": 117,
-  "retrieved_voted_no_relationship_true_links": 1
+  "retrieved_true_links": 294,
+  "retrieved_voted_no_relationship_true_links": 6
  },
  "predictions": {
   "pairs": 1272,
-  "with_label": 1272,
+  "unresolved_gold": 32,
+  "with_label": 1240,
   "with_prediction": 303
  },
  "revision": "r2",
@@ -51,13 +52,13 @@
    "wilson_lower": 0.0
   },
   {
-   "correct": 43,
+   "correct": 91,
    "families_with_multiple_outcomes": 26,
    "gate_decision": "closed",
    "gate_open": false,
    "level": "intersects_with",
-   "n": 154,
-   "wilson_lower": 0.223963
+   "n": 143,
+   "wilson_lower": 0.568232
   },
   {
    "correct": 0,
@@ -65,7 +66,7 @@
    "gate_decision": "closed",
    "gate_open": false,
    "level": "equal",
-   "n": 74,
+   "n": 71,
    "wilson_lower": 0.0
   },
   {
@@ -78,30 +79,32 @@
    "wilson_lower": 0.0
   },
   {
-   "correct": 66,
+   "correct": 61,
    "families_with_multiple_outcomes": 17,
-   "gate_decision": "open",
-   "gate_open": true,
+   "gate_decision": "closed",
+   "gate_open": false,
    "level": "no_relationship",
    "n": 67,
-   "wilson_lower": 0.935831
+   "wilson_lower": 0.83605
   }
  ],
- "scored": "2026-11-17T20:33:03Z",
- "sha256": "1a58ba8f5ecbc23aa7b49d10d43dff9222aba7362aa45df22f08bc15e12ee7c6",
+ "scored": "2026-11-17T21:56:36Z",
+ "sha256": "9b1bb3f69b83699b49d9390af0b9d8d4538aafb1b9919dd8b66ebde9462e575b",
  "split": "evaluation",
  "ss_audit": {
   "SS-retrieval": {
    "error_rate": null,
    "errors": 0,
    "n": 0,
-   "pool": 0
+   "pool": 0,
+   "unresolved": 0
   },
   "SS-scope": {
-   "error_rate": 1.0,
-   "errors": 1,
+   "error_rate": 0.0,
+   "errors": 0,
    "n": 1,
-   "pool": 1
+   "pool": 1,
+   "unresolved": 0
   }
  }
 }

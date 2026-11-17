@@ -1,7 +1,7 @@
 {
  "config_sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359",
  "engine": "54dae60c336a1789",
- "frozen": "2026-11-17T18:37:01Z",
+ "frozen": "2026-11-17T20:57:36Z",
  "gates": {
   "equal": "closed",
   "intersects_with": "closed",
@@ -27,14 +27,14 @@
   ]
  },
  "proposer": "openai/gpt-6-luna",
- "protocol_sha256": "34523becd7a3ae762f966ca24e6057ea2e9f87928388111ae020c79de9c97687",
+ "protocol_sha256": "2537e1801a3cc3bce83f8034f08a0efb7443dc904a1759d5b6620d7378eee26a",
  "qv": {
   "extract": "extract-v1",
   "propose": "propose-v1",
   "triad": "vote-v1"
  },
  "revision": "r2",
- "sha256": "0935b343b494810df8f3e0d7cd108118a9867a10f127b8d8aecbcd4f7da40e04",
+ "sha256": "0c2f97b7e374e16d0b9892327d26d6a493af1f40696dac8c3d7177098cb97c0f",
  "split": "evaluation",
  "triad": [
   "anthropic/claude-haiku-5.5",

@@ -47,12 +47,14 @@ PRICES = {
     "anthropic/claude-haiku-5.5":   {"in": 0.100, "out": 0.500, "provider": "anthropic", "family": "anthropic"},
     "google/gemini-2.5-flash-lite": {"in": 0.100, "out": 0.400, "provider": "openrouter", "family": "google"},
     "mistralai/mistral-small-2603": {"in": 0.150, "out": 0.600, "provider": "openrouter", "family": "mistralai"},
-    "mistralai/mistral-large-4-0":  {"in": 0.700, "out": 2.100, "provider": "openrouter", "family": "mistralai"},
+    "mistralai/mistral-large-2512": {"in": 0.500, "out": 1.500, "provider": "openrouter", "family": "mistralai"},
 }
 PRICE_SOURCE = "https://openrouter.ai/api/v1/models retrieved 2026-11-16, re-read 2026-11-17; usd per 1e6 tokens"
 ROUTING_NOTE = ("Gemini is reached through OpenRouter (Google's direct API unavailable 2026-11-17; Dorian's instruction); "
                 "the council's Google voice is gemini-2.5-flash-lite so the OpenRouter worst case stays under its $20 cap. "
-                "Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families.")
+                "Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families. "
+                "The council's Mistral voice is mistral-large-2512, not mistral-large-4-0: Large 4 reasons before it answers, cannot be told not to, "
+                "and spent the whole 250-token council ceiling on reasoning on every evaluation packet (2,353 of 2,357 replies empty).")
 
 ROLES = {
     # input ceilings are byte-length bounds (providers.token_bound): the longest control statement is 1,859 chars
@@ -61,7 +63,7 @@ ROLES = {
     "proposal":   {"model": "openai/gpt-6-luna", "in": 3000, "out": 200},
     "vote":       {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-small-2603"],
                    "in": 2800, "out": 150},
-    "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-large-4-0"],
+    "council":    {"models": ["anthropic/claude-haiku-5.5", "google/gemini-2.5-flash-lite", "mistralai/mistral-large-2512"],
                    "in": 3200, "out": 250},
 }
 

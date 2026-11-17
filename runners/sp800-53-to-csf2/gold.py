@@ -4,7 +4,9 @@
     python3 -I gold.py assemble [--split evaluation] [--workers W]
         primary packets for every (unit, candidate) pair the split retrieved: blind (unit text, unit context, candidate
         text, rubric; never a proposal, vote, confidence, route or prediction), ruled by the three council voices
-        (majority on the level; a three-way split is no_relationship with reason split); the 20% double-ruled draw ruled
+        (majority on the level; a three-way split of three valid votes is no_relationship with reason split; a reply that
+        does not parse or names no level is not a vote: it is re-asked once, and a panel still short of three valid votes
+        is unresolved, with no label, outside every draw and every score, and counted); the 20% double-ruled draw ruled
         a second time in its own session; the 30 matched blind-versus-assisted pairs ruled in an assisted session with
         the run's proposal, votes and confidence attached; the missed-link draw of r non-retrieved candidates per unit
         ruled in the same pass. Every ruling is stored in council_rulings keyed by (packet id, voice, session) and reused
@@ -140,42 +142,55 @@ class Gold:
                 "candidate": {"id": hub_entry, "text": self.hub[hub_entry]}, "rubric": self.protocol["rubric"]}
 
     def rule(self, packet, packet_class, split, session, blind=True, attachment=None):
-        """Three voices, one call each, keyed by (packet id, voice, session); majority on the level, a three-way split
-        is no_relationship with reason split. Returns the ruling dict."""
+        """Three voices, one call each, keyed by (packet id, voice, session); majority on the level, a three-way split of
+        three valid votes is no_relationship with reason split. A reply that does not parse or names no level is not a
+        vote: it is asked again once (a stored invalid counts as the first try), and a panel still short of three valid
+        votes is unresolved (label None, reason unresolved). Returns the ruling dict."""
         pid = digest(packet)
         votes = []
         for m in self.voices:
             stored = self.rows("SELECT level, reason FROM council_rulings WHERE packet_id=? AND voice=? AND session=?", pid, m, session)
-            if stored:
+            if stored and stored[0]["level"] != "invalid":
                 with self.lock:
                     self.tally["reused"] += 1
                 votes.append({"model": m, "level": stored[0]["level"], "reason": stored[0]["reason"]})
                 continue
-            with self.lock:
-                self.tally["asked"] += 1
-            context = f"family {packet['context']['family']}: {packet['context']['base_title']}"
-            if attachment:
-                context += (f". The run proposed {attachment['proposal']['level']} (confidence {attachment['proposal']['confidence']}, "
-                            f"quotes {json.dumps(attachment['proposal']['quotes'])}); votes: "
-                            + ", ".join(f"{v['voter'].split('/')[0]} {v['vote']}" for v in attachment["votes"]))
-            prompt = providers.render("council", rubric=packet["rubric"], unit_id=packet["unit"]["id"], unit_text=packet["unit"]["text"],
-                                      context=context, hub_id=packet["candidate"]["id"], hub_text=packet["candidate"]["text"],
-                                      levels=", ".join(cards.LEVELS), null=cards.NULL)
-            q = providers.identity("council", packet=pid, voice=m, session=session, prompt_version="council-v1")
-            out = self.adapter.call("council", m, "council-v1", prompt, q, providers.identity("evidence", packet=pid),
-                                    packet_sha256=pid, packet_class=packet_class, split=split, session=session)
-            level = out.get("level") if isinstance(out, dict) else None
-            level = level if level in cards.LEVELS or level == cards.NULL else None
-            reason = (out.get("reason") if isinstance(out, dict) else None) or ("unparsed" if level is None else "")
-            with self.lock, self.db:
-                self.db.execute("INSERT OR REPLACE INTO council_rulings (packet_id, voice, packet_class, split, blind, level, reason, session, created) "
-                                "VALUES (?,?,?,?,?,?,?,?,?)", (pid, m, packet_class, split, int(blind), level or "invalid", str(reason)[:300], session, now()))
+            tries = 1 if stored else 2   # a stored invalid was the first try
+            for attempt in range(tries):
+                level, reason = self.ask(packet, pid, packet_class, split, session, m, blind, attachment, attempt + 1 + (1 if stored else 0))
+                if level is not None:
+                    break
             votes.append({"model": m, "level": level, "reason": reason})
-        levels = [v["level"] for v in votes if v["level"] is not None]
-        winner = max(set(levels), key=levels.count) if levels else None
-        if winner is None or levels.count(winner) < 2:
+        valid = [v["level"] for v in votes if v["level"] is not None]
+        if len(valid) < len(self.voices):
+            return {"packet_id": pid, "label": None, "reason": "unresolved", "votes": votes, "session": session}
+        winner = max(set(valid), key=valid.count)
+        if valid.count(winner) < 2:
             return {"packet_id": pid, "label": cards.NULL, "reason": "split", "votes": votes, "session": session}
         return {"packet_id": pid, "label": winner, "reason": "majority", "votes": votes, "session": session}
+
+    def ask(self, packet, pid, packet_class, split, session, m, blind, attachment, attempt):
+        """One call to one voice; the reply stored under (packet id, voice, session), level 'invalid' when it is not a vote."""
+        with self.lock:
+            self.tally["asked"] += 1
+        context = f"family {packet['context']['family']}: {packet['context']['base_title']}"
+        if attachment:
+            context += (f". The run proposed {attachment['proposal']['level']} (confidence {attachment['proposal']['confidence']}, "
+                        f"quotes {json.dumps(attachment['proposal']['quotes'])}); votes: "
+                        + ", ".join(f"{v['voter'].split('/')[0]} {v['vote']}" for v in attachment["votes"]))
+        prompt = providers.render("council", rubric=packet["rubric"], unit_id=packet["unit"]["id"], unit_text=packet["unit"]["text"],
+                                  context=context, hub_id=packet["candidate"]["id"], hub_text=packet["candidate"]["text"],
+                                  levels=", ".join(cards.LEVELS), null=cards.NULL)
+        q = providers.identity("council", packet=pid, voice=m, session=session, prompt_version="council-v1")
+        out = self.adapter.call("council", m, "council-v1", prompt, q, providers.identity("evidence", packet=pid),
+                                packet_sha256=pid, packet_class=packet_class, split=split, session=session, council_attempt=attempt)
+        level = out.get("level") if isinstance(out, dict) else None
+        level = level if level in cards.LEVELS or level == cards.NULL else None
+        reason = (out.get("reason") if isinstance(out, dict) else None) or ("unparsed" if level is None else "")
+        with self.lock, self.db:
+            self.db.execute("INSERT OR REPLACE INTO council_rulings (packet_id, voice, packet_class, split, blind, level, reason, session, created) "
+                            "VALUES (?,?,?,?,?,?,?,?,?)", (pid, m, packet_class, split, int(blind), level or "invalid", str(reason)[:300], session, now()))
+        return level, reason
 
     # ---- the pass -----------------------------------------------------------------------------------
     def assemble(self, split, rev, workers, catalog):
@@ -202,7 +217,7 @@ class Gold:
             double = dict(zip(double_ids, ex.map(lambda pid: self.rule(packets[by_pid[pid]], "primary", split, "double"), double_ids)))
         alpha = krippendorff_nominal([(primary[by_pid[pid]]["label"], double[pid]["label"]) for pid in double_ids])
         # the 30 matched pairs: the same primary packet ruled assisted in a separate session
-        ruled_ids = [pid for pid, k in by_pid.items() if primary[k]["reason"] == "majority"]
+        ruled_ids = [pid for pid, k in by_pid.items() if primary[k]["label"] is not None]   # every valid blind ruling, split included
         pair_ids = draw(protocol, "assisted_pairs", split, ruled_ids, protocol["anchoring_comparison"]["pairs_per_split"])
         attachments = {pid: self.run_outputs(*by_pid[pid]) for pid in pair_ids}
         with ThreadPoolExecutor(max_workers=workers) as ex:
@@ -224,8 +239,11 @@ class Gold:
             missed = dict(zip(missed_packets, ex.map(lambda k: self.rule(missed_packets[k], "missed_link", split, "blind"), missed_packets)))
         out = {"split": split, "revision": rev, "policy": {"nist_references": "association", "five_class": "carries its level; the pinned sources yield none",
                                                            "primary_packet": "blind: unit text, unit context (family and base control title), candidate text, rubric",
-                                                           "ruling": "majority of three voices on the level; a three-way split is no_relationship with reason split"},
+                                                           "ruling": "majority of three valid votes on the level; a three-way split is no_relationship with reason split; "
+                                                                     "a reply that is not a vote is re-asked once; a panel short of three valid votes is unresolved and carries no label"},
                "voices": self.voices, "packets": len(primary),
+               "unresolved": {"primary": sum(1 for r in primary.values() if r["label"] is None), "double": sum(1 for r in double.values() if r["label"] is None),
+                              "assisted": sum(1 for r in assisted.values() if r["label"] is None), "missed_link": sum(1 for r in missed.values() if r["label"] is None)},
                "primary_gold": [{"unit_release": k[0], "unit_id": units[k[0]]["uid"], "candidate_id": k[1], "packet_sha256": r["packet_id"],
                                  "label": r["label"], "reason": r["reason"], "origin": "council", "human_validated": False,
                                  "votes": [{"model": v["model"], "level": v["level"]} for v in r["votes"]]} for k, r in primary.items()],
@@ -333,7 +351,7 @@ def main(argv):
         labels = {}
         for r in out["primary_gold"]:
             labels[r["label"]] = labels.get(r["label"], 0) + 1
-        print(f"gold {args.split}: {out['packets']} primary packets ruled ({labels}); double-ruled {out['double_ruled']['n']} alpha "
+        print(f"gold {args.split}: {out['packets']} primary packets ruled ({labels}); unresolved {out['unresolved']}; double-ruled {out['double_ruled']['n']} alpha "
               f"{out['double_ruled']['krippendorff_alpha']}; assisted pairs {out['anchoring']['pairs']} blind-minus-assisted "
               f"{out['anchoring']['difference']}; missed-link draw {out['missed_link_draw']['n']}; asked {out['tally']['asked']} reused "
               f"{out['tally']['reused']}; cost {out['cost_usd']} USD; {round(time.time() - t0, 1)}s -> {os.path.basename(path)}")

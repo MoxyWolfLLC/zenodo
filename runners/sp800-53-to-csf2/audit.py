@@ -62,28 +62,35 @@ class Audit:
             with self.lock:
                 stored = self.db.execute("SELECT level, reason FROM council_rulings WHERE packet_id=? AND voice=? AND session=?",
                                          (pid, m, "audit")).fetchone()
-            if stored:
+            if stored and stored["level"] != "invalid":
                 with self.lock:
                     self.tally["reused"] += 1
                 votes.append({"model": m, "ruling": stored["level"]})
                 continue
-            with self.lock:
-                self.tally["asked"] += 1
-            prompt = providers.render("audit", rubric=packet["rubric"], unit_id=row["unit_id"], unit_text=row["statement"],
-                                      family=row["family"], card=card, meaning=CARDS[card])
-            q = providers.identity("council", packet=pid, voice=m, session="audit", prompt_version="audit-v1")
-            out = self.adapter.call("council", m, "audit-v1", prompt, q, providers.identity("evidence", packet=pid),
-                                    packet_sha256=pid, packet_class=f"ss_audit:{card}", split=split, session="audit")
-            ruling = out.get("ruling") if isinstance(out, dict) else None
-            ruling = ruling if ruling in ("correct", "error") else "invalid"
-            with self.lock, self.db:
-                self.db.execute("INSERT OR REPLACE INTO council_rulings (packet_id, voice, packet_class, split, blind, level, reason, session, created) "
-                                "VALUES (?,?,?,?,?,?,?,?,?)", (pid, m, f"ss_audit:{card}", split, 1, ruling,
-                                                              str((out.get("reason") if isinstance(out, dict) else None) or "")[:300], "audit", now()))
+            ruling = "invalid"
+            for _ in range(1 if stored else 2):   # a reply that is not a ruling is asked again once; a stored invalid was the first try
+                with self.lock:
+                    self.tally["asked"] += 1
+                prompt = providers.render("audit", rubric=packet["rubric"], unit_id=row["unit_id"], unit_text=row["statement"],
+                                          family=row["family"], card=card, meaning=CARDS[card])
+                q = providers.identity("council", packet=pid, voice=m, session="audit", prompt_version="audit-v1")
+                out = self.adapter.call("council", m, "audit-v1", prompt, q, providers.identity("evidence", packet=pid),
+                                        packet_sha256=pid, packet_class=f"ss_audit:{card}", split=split, session="audit")
+                ruling = out.get("ruling") if isinstance(out, dict) else None
+                ruling = ruling if ruling in ("correct", "error") else "invalid"
+                with self.lock, self.db:
+                    self.db.execute("INSERT OR REPLACE INTO council_rulings (packet_id, voice, packet_class, split, blind, level, reason, session, created) "
+                                    "VALUES (?,?,?,?,?,?,?,?,?)", (pid, m, f"ss_audit:{card}", split, 1, ruling,
+                                                                  str((out.get("reason") if isinstance(out, dict) else None) or "")[:300], "audit", now()))
+                if ruling != "invalid":
+                    break
             votes.append({"model": m, "ruling": ruling})
-        correct = sum(1 for v in votes if v["ruling"] == "correct")
-        return {"decision_id": row["decision_id"], "unit_id": row["unit_id"], "packet_sha256": pid,
-                "ruling": "correct" if correct >= 2 else "error", "votes": votes}
+        valid = [v["ruling"] for v in votes if v["ruling"] != "invalid"]
+        if len(valid) < len(self.voices):
+            verdict = "unresolved"
+        else:
+            verdict = "correct" if valid.count("correct") >= 2 else "error"
+        return {"decision_id": row["decision_id"], "unit_id": row["unit_id"], "packet_sha256": pid, "ruling": verdict, "votes": votes}
 
     def run(self, split, rev, workers):
         out = {"split": split, "revision": rev, "per_card": self.protocol["ss_audit"]["per_card"], "cards": {}}
@@ -93,8 +100,10 @@ class Audit:
             rows = {r["decision_id"]: r for r in pool}
             with ThreadPoolExecutor(max_workers=workers) as ex:
                 ruled = list(ex.map(lambda i: self.rule(rows[i], card, split), ids))
-            errors = sum(1 for r in ruled if r["ruling"] == "error")
-            out["cards"][card] = {"pool": len(pool), "n": len(ruled), "errors": errors, "error_rate": (errors / len(ruled)) if ruled else None,
+            resolved = [r for r in ruled if r["ruling"] != "unresolved"]
+            errors = sum(1 for r in resolved if r["ruling"] == "error")
+            out["cards"][card] = {"pool": len(pool), "drawn": len(ruled), "n": len(resolved), "unresolved": len(ruled) - len(resolved),
+                                  "errors": errors, "error_rate": (errors / len(resolved)) if resolved else None,
                                   "seed": gold.draw_seed(self.protocol, "ss_audit", split), "rows": ruled}
         out["tally"] = dict(self.tally)
         return out

@@ -22,7 +22,9 @@ of the schedule with the recorded rows kept, so revision ids stay unique and wit
 What it reads: runners/sp800-53-to-csf2/protocol.json (the sample and its splits, roles, budget), index.json (the hub
 vectors), data/sp800-53r5_catalog.json (statements), runners/sp800-53-to-csf2/reference_semantics.json (the pinned
 NIST informative references from item 1: control-level entries with csf_element, target_oscal_id, csf_element_status,
-granularity; the weak labels), runners/sp800-53-to-csf2/providers.py, engine.py, store.py, retrieve.py.
+granularity; the weak labels), runners/sp800-53-to-csf2/config.frozen.json (what calibrate froze: c_min, the prompt
+versions, the chosen revision, its sha256 and the protocol hash it ran under; evaluate reads it), runners/sp800-53-to-csf2/providers.py,
+engine.py, store.py, retrieve.py.
 
 Stage identities (what a stored output is keyed by):
   extraction  unit release, attempt, prompt version

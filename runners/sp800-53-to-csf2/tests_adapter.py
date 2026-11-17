@@ -178,7 +178,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(out["level"], "subset_of"); self.assertEqual(out["reason"], "majority")
         self.assertEqual([e["role"] for e in self.rows(self.ev)], ["council"] * 3)
         self.stub.answers["api.anthropic.com"] = {"content": [{"text": '{"level": "equal"}'}], "usage": {"input_tokens": 1, "output_tokens": 1}}
-        by_model = {"google/gemini-2.5-flash-lite": "intersects_with", "mistralai/mistral-large-4-0": "superset_of"}
+        by_model = {"google/gemini-2.5-flash-lite": "intersects_with", "mistralai/mistral-large-2512": "superset_of", "mistralai/mistral-large-4-0": "superset_of"}
         self.stub.answers["openrouter.ai"] = lambda body: {"choices": [{"message": {"content": json.dumps({"level": by_model[body["model"]]})}}],
                                                            "usage": {"cost": 0.0001}}
         out = self.a.council(packet, self.q, "e1")

@@ -111,12 +111,58 @@ class Scoring(unittest.TestCase):
         self.assertEqual(rows["equal"]["families_with_multiple_outcomes"], 13)
         self.assertEqual((rows["no_relationship"]["n"], rows["no_relationship"]["correct"], rows["no_relationship"]["gate_decision"]), (2, 0, "closed_insufficient"))
         self.assertEqual(rows["subset_of"]["n"], 0)
-        self.assertEqual(out["predictions"], {"pairs": 30, "with_prediction": 28, "with_label": 30})
+        self.assertEqual(out["predictions"], {"pairs": 30, "with_prediction": 28, "with_label": 30, "unresolved_gold": 0})
         self.assertEqual(out["coverage"]["with_a_true_link"], 30)
         self.assertEqual(out["missed_links"]["retrieved_voted_no_relationship_true_links"], 2)
         self.assertAlmostEqual(out["missed_links"]["estimate"], (2 + 19.6 * 2) / (30 + 19.6 * 2), places=5)
         shutil.rmtree(tmp)
 
+
+class Panels(unittest.TestCase):
+    """A reply that is not a vote is re-asked once and never counted; a panel short of three valid votes is unresolved."""
+    class Scripted:
+        def __init__(self, script):
+            self.script, self.calls = script, []
+        def call(self, role, model, pv, prompt, q, e, **ctx):
+            self.calls.append((model, ctx.get("council_attempt")))
+            answers = self.script.get(model, [])
+            return answers.pop(0) if answers else {"level": "equal", "reason": "ok"}
+
+    def gold(self, script):
+        import sqlite3, tempfile
+        db = os.path.join(tempfile.mkdtemp(), "g.sqlite")
+        sqlite3.connect(db).execute("CREATE TABLE council_rulings (packet_id TEXT NOT NULL, voice TEXT NOT NULL, packet_class TEXT NOT NULL, split TEXT NOT NULL, "
+                                    "blind INTEGER NOT NULL, level TEXT NOT NULL, reason TEXT, session TEXT NOT NULL, created TEXT NOT NULL, PRIMARY KEY (packet_id, voice, session))").connection.commit()
+        protocol = {"roles": {"council": {"models": ["a/x", "b/y", "c/z"]}}, "rubric": "r"}
+        adapter = self.Scripted(script)
+        return gold.Gold(protocol, adapter, db), adapter
+
+    PACKET = {"unit": {"id": "AC-1", "text": "t"}, "context": {"family": "ac-1", "base_title": "T"}, "candidate": {"id": "PR.AA-01", "text": "h"}, "rubric": "r"}
+
+    def test_an_invalid_reply_is_re_asked_once_then_the_panel_is_unresolved(self):
+        g, a = self.gold({"a/x": [{"level": "equal"}], "b/y": [{"parse_error": True}, {"level": "equal"}], "c/z": [{"parse_error": True}, {"level": "nonsense"}]})
+        r = g.rule(self.PACKET, "primary", "evaluation", "blind")
+        self.assertEqual((r["label"], r["reason"]), (None, "unresolved"))
+        self.assertEqual([c for c in a.calls if c[0] == "c/z"], [("c/z", 1), ("c/z", 2)])
+        self.assertEqual([v["level"] for v in r["votes"]], ["equal", "equal", None])
+        # a stored invalid is the first try: one more ask, then a valid vote completes the panel
+        g2, a2 = self.gold({"c/z": [{"level": "equal", "reason": "now"}]})
+        g2.db.execute("INSERT INTO council_rulings VALUES (?,?,?,?,?,?,?,?,?)", (gold.digest(self.PACKET), "c/z", "primary", "evaluation", 1, "invalid", "unparsed", "blind", "x"))
+        g2.db.commit()
+        r2 = g2.rule(self.PACKET, "primary", "evaluation", "blind")
+        self.assertEqual((r2["label"], r2["reason"]), ("equal", "majority"))
+        self.assertEqual([c for c in a2.calls if c[0] == "c/z"], [("c/z", 2)])
+        self.assertEqual(g2.tally, {"asked": 3, "reused": 0})
+
+    def test_a_three_way_split_of_valid_votes_is_the_null_and_two_invalid_never_make_a_majority(self):
+        g, _ = self.gold({"a/x": [{"level": "equal"}], "b/y": [{"level": "subset_of"}], "c/z": [{"level": "intersects_with"}]})
+        r = g.rule(self.PACKET, "primary", "evaluation", "blind")
+        self.assertEqual((r["label"], r["reason"]), ("no_relationship", "split"))
+        g, _ = self.gold({"a/x": [{"level": "equal"}], "b/y": [{}, {}], "c/z": [{}, {}]})
+        r = g.rule(self.PACKET, "primary", "evaluation", "blind")
+        self.assertEqual((r["label"], r["reason"]), (None, "unresolved"))
+        stored = [tuple(r) for r in g.db.execute("SELECT voice, level FROM council_rulings ORDER BY voice")]
+        self.assertEqual(stored, [("a/x", "equal"), ("b/y", "invalid"), ("c/z", "invalid")])
 
 if __name__ == "__main__":
     unittest.main()

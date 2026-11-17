@@ -79,7 +79,8 @@ def score(split, rev, db_path=STORE):
     audit = json.load(open(audit_path, encoding="utf-8")) if os.path.isfile(audit_path) else None
     db = sqlite3.connect(db_path)
     preds = predictions(db, split, rev, config["c_min"])
-    label = {(r["unit_release"], r["candidate_id"]): r["label"] for r in gold["primary_gold"]}
+    label = {(r["unit_release"], r["candidate_id"]): r["label"] for r in gold["primary_gold"] if r["label"] is not None}
+    unresolved = sum(1 for r in gold["primary_gold"] if r["label"] is None)
     rows = []
     for level in [*cards.LEVELS, cards.NULL]:
         at = [(k, p) for k, p in preds.items() if p == level and (k[0], k[3]) in label]
@@ -106,10 +107,11 @@ def score(split, rev, db_path=STORE):
               "non_retrieved_draw_true_links": draw_true, "non_retrieved_weight": weight, "draw_n": gold["missed_link_draw"]["n"],
               "estimate": round((missed_retrieved + weight * draw_true) / total, 6) if total else None,
               "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson)"}
-    ss = {card: {"pool": c["pool"], "n": c["n"], "errors": c["errors"], "error_rate": c["error_rate"]} for card, c in (audit or {}).get("cards", {}).items()}
+    ss = {card: {"pool": c["pool"], "n": c["n"], "unresolved": c.get("unresolved", 0), "errors": c["errors"], "error_rate": c["error_rate"]}
+          for card, c in (audit or {}).get("cards", {}).items()}
     out = {"split": split, "revision": rev, "config_sha256": config["sha256"], "c_min": config["c_min"], "rows": rows,
            "predictions": {"pairs": len(preds), "with_prediction": sum(1 for p in preds.values() if p is not None),
-                           "with_label": sum(1 for k in preds if (k[0], k[3]) in label)},
+                           "with_label": sum(1 for k in preds if (k[0], k[3]) in label), "unresolved_gold": unresolved},
            "coverage": coverage, "missed_links": missed, "ss_audit": ss or None,
            "council_agreement": {"krippendorff_alpha": gold["double_ruled"]["krippendorff_alpha"], "double_ruled_n": gold["double_ruled"]["n"]},
            "anchoring": {k: v for k, v in gold["anchoring"].items() if k != "rows"},

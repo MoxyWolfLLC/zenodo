@@ -5,7 +5,7 @@
     "council_voices": [
       "anthropic/claude-haiku-5.5",
       "google/gemini-2.5-flash-lite",
-      "mistralai/mistral-large-4-0"
+      "mistralai/mistral-large-2512"
     ],
     "double_ruled_from": "primary packets only",
     "double_ruled_share": 0.2,
@@ -22,7 +22,7 @@
     "by_provider_usd": {
       "anthropic": 4.67,
       "openai": 3.31,
-      "openrouter": 19.81
+      "openrouter": 16.59
     },
     "cap_usd": 60.0,
     "k": 8,
@@ -170,12 +170,12 @@
       {
         "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
         "calls": 2426,
-        "model": "mistralai/mistral-large-4-0",
+        "model": "mistralai/mistral-large-2512",
         "provider": "openrouter",
         "stage": "council_evaluation",
         "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 6.7079
+        "usd": 4.7914
       },
       {
         "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
@@ -200,12 +200,12 @@
       {
         "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
         "calls": 1638,
-        "model": "mistralai/mistral-large-4-0",
+        "model": "mistralai/mistral-large-2512",
         "provider": "openrouter",
         "stage": "council_test",
         "tokens_in_ceiling": 3200,
         "tokens_out_ceiling": 250,
-        "usd": 4.5291
+        "usd": 3.2351
       },
       {
         "basis": "sealed-test votes re-asked, worst case every one, one per voter",
@@ -252,10 +252,10 @@
         "out": 0.4,
         "provider": "openrouter"
       },
-      "mistralai/mistral-large-4-0": {
+      "mistralai/mistral-large-2512": {
         "family": "mistralai",
-        "in": 0.7,
-        "out": 2.1,
+        "in": 0.5,
+        "out": 1.5,
         "provider": "openrouter"
       },
       "mistralai/mistral-small-2603": {
@@ -288,8 +288,8 @@
     "r": 5,
     "reserve_rule": "inside the cap; released only in the deliverables phase",
     "reserve_usd": 10.0,
-    "total_usd": 27.79,
-    "total_with_reserve_usd": 37.79,
+    "total_usd": 24.58,
+    "total_with_reserve_usd": 34.58,
     "voices": 3
   },
   "calibration": {
@@ -341,7 +341,7 @@
       "models": [
         "anthropic/claude-haiku-5.5",
         "google/gemini-2.5-flash-lite",
-        "mistralai/mistral-large-4-0"
+        "mistralai/mistral-large-2512"
       ],
       "out": 250
     },
@@ -370,7 +370,7 @@
       "out": 150
     }
   },
-  "routing_note": "Gemini is reached through OpenRouter (Google's direct API unavailable 2026-11-17; Dorian's instruction); the council's Google voice is gemini-2.5-flash-lite so the OpenRouter worst case stays under its $20 cap. Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families.",
+  "routing_note": "Gemini is reached through OpenRouter (Google's direct API unavailable 2026-11-17; Dorian's instruction); the council's Google voice is gemini-2.5-flash-lite so the OpenRouter worst case stays under its $20 cap. Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families. The council's Mistral voice is mistral-large-2512, not mistral-large-4-0: Large 4 reasons before it answers, cannot be told not to, and spent the whole 250-token council ceiling on reasoning on every evaluation packet (2,353 of 2,357 replies empty).",
   "rubric": "Unit: one active SP 800-53 Rev. 5 control or control enhancement (statement text). Hub entry: one active\nCSF 2.0 subcategory (identifier and text). Rule on the set of required activities each describes, following\nNIST IR 8477's set-theory relationship types:\n  subset_of        every activity the unit requires is required by the subcategory, and the subcategory requires more\n  superset_of      every activity the subcategory requires is required by the unit, and the unit requires more\n  equal            the two require the same activities\n  intersects_with  some required activities are shared, each side also requires activities the other does not\n  no_relationship  no required activity is shared\nRule from the two texts alone. A packet shows source text, context, candidate and this rubric, never a proposal,\nvote, confidence, route or prediction. When the texts do not settle the level, rule no_relationship and say why.",
   "sample": {
     "families": 104,
