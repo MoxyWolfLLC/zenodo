@@ -65,6 +65,34 @@ class Policy(unittest.TestCase):
         self.assertEqual(run.r3_threshold(1.0), 0.8)
 
 
+class Replay(unittest.TestCase):
+    def test_an_outbound_attempt_is_reported_and_the_pass_exits_5(self):
+        """A copy of the live store with one r2 vote removed: the walk needs a call, replay mode refuses it, the report
+        on disk carries the attempt and the failed status, and the pass exits 5."""
+        import subprocess, sys
+        src = os.path.join(HERE, "run.sqlite")
+        if not os.path.isfile(src):
+            self.skipTest("no live store")
+        tmp = tempfile.mkdtemp()
+        copy = os.path.join(tmp, "run.sqlite"); shutil.copyfile(src, copy)
+        con = sqlite3.connect(copy)
+        vote = con.execute("SELECT v.output_id FROM votes v JOIN proposals p ON p.output_id=v.proposal_output_id JOIN units u ON u.unit_release=p.unit_release "
+                           "WHERE v.revision='r2' AND u.split='evaluation' LIMIT 1").fetchone()
+        self.assertIsNotNone(vote, "the evaluation split holds r2 votes")
+        with con:
+            con.execute("DELETE FROM votes WHERE output_id=?", (vote[0],))
+        con.close()
+        report = os.path.join(tmp, "replay_decisions.json")
+        env = {**os.environ, "GSTACK_STORE": copy, "GSTACK_REPLAY_DECISIONS": report, "GSTACK_ACCOUNTING": os.path.join(tmp, "acc.jsonl"), "GSTACK_EVENTS": os.path.join(tmp, "ev.jsonl")}
+        p = subprocess.run([sys.executable, "-I", os.path.join(HERE, "run.py"), "replay", "--workers", "1"], capture_output=True, text=True, env=env, cwd=HERE)
+        self.assertEqual(p.returncode, 5, p.stdout + p.stderr)
+        r = json.load(open(report))
+        self.assertEqual((r["status"], r["equal"], r["violation"]["revision"], r["violation"]["split"]), ("failed", False, "r2", "evaluation"))
+        self.assertGreaterEqual(r["outbound_attempts"], 1)
+        self.assertTrue(any(x.get("outbound_attempt") for x in r["revisions"]))
+        shutil.rmtree(tmp)
+
+
 class Undo(unittest.TestCase):
     def test_reversal_and_recovery_on_copies_leave_the_source_untouched(self):
         tmp = tempfile.mkdtemp()

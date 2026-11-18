@@ -7,7 +7,7 @@ workbook (control-level references), hashes each, counts what the pinned catalog
 and tags every reference entry by the semantics its source supports.
 
     python3 -I fetch_sources.py            fetch, hash, count, tag; writes data/ and the three JSON files
-    python3 -I fetch_sources.py --check    re-hash data/ against sources.json; exit 2 on a mismatch
+    python3 -I fetch_sources.py --check    re-hash data/ and recompute every count against sources.json; exit 2 on a mismatch
 
 Exit codes: 0 ok; 2 a fetched or re-read file's hash differs from the pinned one (a first run that finds a
 sources.json whose hashes differ exits 2 and changes nothing); 3 a fetch failed.
@@ -169,8 +169,24 @@ def main(argv):
                                                   if name.endswith(".xlsx") else "file bytes"),
                                    "bytes_sha256": bytes_sha256(path),
                                    "retrieved": pinned["files"][name]["retrieved"] if pinned else today}
-    if check_only:
-        print("sources.json verified")
+    if check_only:                                   # the counts too: every count in sources.json is computed from the files
+        cat = count_catalog(os.path.join(DATA, "sp800-53r5_catalog.json"))
+        subs, funcs, cats, ext, rel_types, kind, gone = csf_core(os.path.join(DATA, "csf2_core_cprt.json"))
+        links = xlsx_links(os.path.join(DATA, "csf2_informative_references.xlsx"))
+        by_rev, by_kind = {}, {}
+        for _, elem, k, rev, _ in links:
+            by_rev[rev] = by_rev.get(rev, 0) + 1
+            by_kind[k] = by_kind.get(k, 0) + 1
+        counts = {"sp800_53": cat, "csf2": {"functions": len(funcs), "categories": len(cats), "subcategories": len(subs)},
+                  "references": {"cprt_external_reference_family_level": len(ext),
+                                 "cprt_by_source_kind": {k: sum(1 for r in ext if kind.get(r["source_element_identifier"]) == k) for k in ("subcategory", "category")},
+                                 "workbook_control_level_links": len(links), "workbook_links_by_revision": by_rev, "workbook_links_by_csf_kind": by_kind,
+                                 "workbook_links_on_withdrawn_subcategories": sum(1 for _, e, k, _, _ in links if k == "subcategory" and e in gone),
+                                 "workbook_distinct_control_strings": len({f"{rev}: {c}" for _, _, _, rev, c in links})}}
+        if counts != pinned["counts"]:
+            print(f"count mismatch: pinned {json.dumps(pinned['counts'], sort_keys=True)} now {json.dumps(counts, sort_keys=True)}", file=sys.stderr)
+            return 2
+        print(f"sources.json verified: hashes and counts recomputed from data/ ({json.dumps(counts, sort_keys=True)})")
         return 0
     if into != DATA:  # every hash matched the pinned one: move the fresh files into place, keep the pinned JSONs
         os.makedirs(DATA, exist_ok=True)

@@ -41,7 +41,9 @@
    "split": "test"
   }
  ],
- "seconds": 1.1,
+ "seconds": 1.0,
+ "status": "equal",
  "store": "run.sqlite",
- "ts": "2026-11-18T00:37:16Z"
+ "ts": "2026-11-18T02:12:31Z",
+ "violation": null
 }

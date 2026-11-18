@@ -10,8 +10,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "a90980d9dde9856087a92eec21d8a8462f62a6b3e60137576b27bc6b934a94e1",
-   "bytes": 7138
+   "sha256": "d99ff68598064fb5753ea6a3b5dea0e2a67cce2843629c7d2a2353376e3f8b7c",
+   "bytes": 7180
   },
   {
    "path": "RESULT.md",
@@ -55,8 +55,8 @@
   },
   {
    "path": "check.py",
-   "sha256": "98a22a013d8dfebe6dd94d737d45fad662d5d4bfd96f7c1c6e883e7cd9b6a639",
-   "bytes": 25648
+   "sha256": "bff16c183a96f4d21962a53dea4e7b21120b42d2f035d47c3092f328c596f626",
+   "bytes": 25833
   },
   {
    "path": "config.frozen.json",
@@ -85,8 +85,8 @@
   },
   {
    "path": "fetch_sources.py",
-   "sha256": "33dc45d064e0e788a37c0d3cc007ab235214661c3a8f4844f43cedbf2d6f01be",
-   "bytes": 13295
+   "sha256": "b4e2206781abf89bd81b65e6f9bcc31e7c3a9c6831e283e219f333705fd5d314",
+   "bytes": 14954
   },
   {
    "path": "fixture_ops.py",
@@ -155,8 +155,8 @@
   },
   {
    "path": "replay_decisions.json",
-   "sha256": "fde51dc8228c28ac3a4a5e4768a5c17a085c826b2aa8c7cbeed81cd3d40a8145",
-   "bytes": 937
+   "sha256": "fa4e0c3a46914530fc4f97a9bbf370795c74da5e0349efb090f5d1a6926643cf",
+   "bytes": 977
   },
   {
    "path": "replay_report.json",
@@ -175,8 +175,8 @@
   },
   {
    "path": "run.py",
-   "sha256": "40346860bc4e861e9f2ad3990bfb1b346f8bf0d70b330508754aea82a0c92556",
-   "bytes": 46048
+   "sha256": "9ed7d6233c5b293d96b60a33611f4790e9cffeaaf8199e92a749f77d72c088a3",
+   "bytes": 46965
   },
   {
    "path": "run.sqlite",
@@ -235,8 +235,8 @@
   },
   {
    "path": "tests_conform.py",
-   "sha256": "de6decc444dd6a99159dd2e991b489db38b27179a91c21c7a1526c027378f282",
-   "bytes": 3466
+   "sha256": "02265285c8b24e3dee9f430201b0e2aacd81229dfa4e620f666dcac4b9641f44",
+   "bytes": 4007
   },
   {
    "path": "tests_gold.py",
@@ -245,8 +245,8 @@
   },
   {
    "path": "tests_item8.py",
-   "sha256": "dee35a7eca4f29b38c07bf551fb2f754034b1947a97e27115760de37c0f46562",
-   "bytes": 6162
+   "sha256": "0ebcbf9f448223ca5018fd5491183da519a917b41319504ed83218ff9746fc31",
+   "bytes": 8035
   },
   {
    "path": "tests_run.py",
