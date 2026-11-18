@@ -81,19 +81,32 @@ def score(split, rev, db_path=STORE):
     preds = predictions(db, split, rev, config["c_min"])
     label = {(r["unit_release"], r["candidate_id"]): r["label"] for r in gold["primary_gold"] if r["label"] is not None}
     unresolved = sum(1 for r in gold["primary_gold"] if r["label"] is None)
-    rows = []
-    for level in [*cards.LEVELS, cards.NULL]:
-        at = [(k, p) for k, p in preds.items() if p == level and (k[0], k[3]) in label]
-        n = len(at)
-        correct = sum(1 for k, p in at if label[(k[0], k[3])] == level)
-        lower = wilson_lower(correct, n)
-        opens = n >= 25 and lower >= 0.90
-        fam = {}
-        for k, _ in at:
-            fam[k[2]] = fam.get(k[2], 0) + 1
-        rows.append({"level": level, "n": n, "correct": correct, "wilson_lower": round(lower, 6), "gate_open": opens,
-                     "gate_decision": "closed_insufficient" if n < 25 else ("open" if opens else "closed"),
-                     "families_with_multiple_outcomes": sum(1 for v in fam.values() if v > 1)})
+
+    def level_rows(answers):
+        """One row per level and one for no_relationship over (unit_release, unit_id, family, candidate) -> answer."""
+        out = []
+        for level in [*cards.LEVELS, cards.NULL]:
+            at = [(k, p) for k, p in answers.items() if p == level and (k[0], k[3]) in label]
+            n = len(at)
+            correct = sum(1 for k, p in at if label[(k[0], k[3])] == level)
+            lower = wilson_lower(correct, n)
+            opens = n >= 25 and lower >= 0.90
+            fam = {}
+            for k, _ in at:
+                fam[k[2]] = fam.get(k[2], 0) + 1
+            out.append({"level": level, "n": n, "correct": correct, "wilson_lower": round(lower, 6), "gate_open": opens,
+                        "gate_decision": "closed_insufficient" if n < 25 else ("open" if opens else "closed"),
+                        "families_with_multiple_outcomes": sum(1 for v in fam.values() if v > 1)})
+        return out
+
+    # the sealed-test split scores what the run wrote automatically (route WRITE under an open gate); a level with no
+    # automatic write reports n 0 and closed_insufficient. The evaluation split scores every prediction, gated or not,
+    # which is what qualifies the gates. Both files carry both views.
+    writes = {(rel, uid, fam, cand): level for rel, uid, fam, cand, level in db.execute(
+        "SELECT d.unit_release, d.unit_id, u.family, d.hub_entry, d.level FROM decisions d JOIN units u ON u.unit_release=d.unit_release "
+        "WHERE u.split=? AND d.revision=? AND d.superseded_by IS NULL AND d.route='WRITE'", (split, rev))}
+    prediction_rows, write_rows = level_rows(preds), level_rows(writes)
+    rows = write_rows if split == "test" else prediction_rows
     units = {r[0] for r in db.execute("SELECT unit_release FROM units WHERE split=?", (split,))}
     linked_units = {k[0] for k in label if label[k] in cards.LEVELS}
     coverage = {"units": len(units), "with_a_true_link": len(linked_units & units), "share": round(len(linked_units & units) / len(units), 6) if units else None,
@@ -119,6 +132,8 @@ def score(split, rev, db_path=STORE):
     ss = {card: {"pool": c["pool"], "n": c["n"], "unresolved": c.get("unresolved", 0), "errors": c["errors"], "error_rate": c["error_rate"]}
           for card, c in (audit or {}).get("cards", {}).items()}
     out = {"split": split, "revision": rev, "config_sha256": config["sha256"], "c_min": config["c_min"], "rows": rows,
+           "rows_basis": "automatic writes (route WRITE)" if split == "test" else "predictions, gated or not",
+           "automatic_write_rows": write_rows, "prediction_rows": prediction_rows, "automatic_writes": len(writes),
            "predictions": {"pairs": len(preds), "with_prediction": sum(1 for p in preds.values() if p is not None),
                            "with_label": sum(1 for k in preds if (k[0], k[3]) in label), "unresolved_gold": unresolved},
            "coverage": coverage, "missed_links": missed, "ss_audit": ss or None,

@@ -1,0 +1,40 @@
+{
+ "by_split": {
+  "evaluation": {
+   "age_hours": {
+    "max": 0.652,
+    "mean": 0.652,
+    "min": 0.651
+   },
+   "reasons": {
+    "evidence_unclear": 865,
+    "incomplete_triad": 61,
+    "level_gate_closed": 236,
+    "level_split": 43,
+    "nomatch_gate_closed": 67
+   },
+   "size": 1272
+  },
+  "test": {
+   "age_hours": {
+    "max": 0.737,
+    "mean": 0.737,
+    "min": 0.737
+   },
+   "reasons": {
+    "evidence_unclear": 556,
+    "incomplete_triad": 55,
+    "level_gate_closed": 152,
+    "level_split": 32,
+    "nomatch_gate_closed": 45
+   },
+   "size": 840
+  }
+ },
+ "published_revisions": [
+  "r2"
+ ],
+ "read_at": "2026-11-18T00:28:11Z",
+ "size": 2112,
+ "store": "run.sqlite"
+}

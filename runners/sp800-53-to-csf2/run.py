@@ -5,6 +5,9 @@ touches and nothing else.
 
     python3 -I run.py calibrate [--units N] [--revisions N] [--workers W]
     python3 -I run.py reconcile      drop a unit's terminal row under a revision that also holds its candidate rows
+    python3 -I run.py test [--workers W]       item 8: the sealed-test split under r2 (set_r2.json), before any council ruling for it
+    python3 -I run.py policy [--workers W]     item 8: r3 on the test split, expected invalidations first, then the calls; policy_report.json; exit 3 on a mismatch
+    python3 -I run.py replay [--workers W]     item 8: every live decision re-derived on a copy of the store with calls disabled; replay_decisions.json; exit 5 on an outbound attempt
     python3 -I run.py evaluate [--workers W]
         the evaluation split under set r2: the frozen configuration (config.frozen.json) with every gate closed; the
         decisions are the predictions items 7 scores; set_r2.json is written with its hash. Exit 0; 4 on a budget refusal.
@@ -467,6 +470,11 @@ def evaluate(args, split="evaluation", rev="r2"):
         run.unit_row(u, split)
     S = frozen_set(rev, run, config)
     rec = write_set(rev, S, config, {"split": split, "units": len(units)})
+    if os.path.isfile(os.path.join(HERE, "set_r1.json")) and not run.db.execute("SELECT 1 FROM sets WHERE revision='r1'").fetchone():
+        r1 = read_set("r1")                           # the paper's defaults, recorded and never published in this run
+        r1.setdefault("sha256", hashlib.sha256(json.dumps(r1, indent=1, sort_keys=True).encode()).hexdigest())
+        set_row(r1, False)
+    set_row(rec, True)                                 # r2 is the published revision
     before, _ = adapter.spend()
     run.tally = {"asked": 0, "reused": 0}
     t0 = time.time()
@@ -477,15 +485,245 @@ def evaluate(args, split="evaluation", rev="r2"):
           f"cost {providers.money(after - before)} USD, {round(time.time() - t0, 1)}s; routes {routes}; set_{rev}.json sha256 {rec['sha256'][:16]}")
 
 
+# ---- item 8: the sealed-test pass, the policy change, replay --------------------------------------------
+def set_row(rec, active, db_path=STORE):
+    """The set in the store's sets table; publication is the active flag, one active set at a time."""
+    con = sqlite3.connect(db_path)
+    with con:
+        con.execute("INSERT OR REPLACE INTO sets (revision, active, sha256, gates, created) VALUES (?,?,?,?,?)",
+                    (rec["revision"], int(active), rec["sha256"], json.dumps(rec["gates"]), rec.get("frozen") or now()))
+        if active:
+            con.execute("UPDATE sets SET active=0 WHERE revision<>?", (rec["revision"],))
+    con.close()
+
+
+def read_set(rev):
+    with open(os.path.join(HERE, f"set_{rev}.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def r3_threshold(c_min):
+    """protocol.json r3.formula: threshold_r2 - 0.2 floored at 0; if that leaves the value unchanged, threshold_r2 + 0.2 capped at 1."""
+    down = max(0.0, c_min - 0.2)
+    return round(down if down != c_min else min(1.0, c_min + 0.2), 6)
+
+
+def test_pass(args, split="test", rev="r2"):
+    """run.py test: the sealed split's predictions under r2, stored before any ruling for the split is read. The set is the
+    one evaluate froze (set_r2.json), checked against the frozen configuration and never rewritten here."""
+    protocol = retrieve.protocol_checked()
+    config = frozen_config()
+    adapter = providers.Adapter(protocol)
+    run = Run(protocol, adapter)
+    ruled = run.db.execute("SELECT COUNT(*) FROM council_rulings WHERE split=?", (split,)).fetchone()[0]
+    if ruled:
+        print(f"refused: {ruled} council ruling(s) for the {split} split already exist; the test pass stores its predictions first", file=sys.stderr)
+        return 2
+    S = frozen_set(rev, run, config)
+    rec = read_set(rev)
+    frozen = {k: rec[k] for k in ("engine", "params", "qv", "config_sha256")}
+    here = {"engine": S["engine"], "params": S["params"], "qv": S["qv"], "config_sha256": config["sha256"]}
+    if frozen != here:
+        print(f"refused: set_{rev}.json is not the frozen configuration's set: {frozen} != {here}", file=sys.stderr)
+        return 2
+    sample = [u for u in protocol["sample"]["units"] if u["split"] == split]
+    units = [run.catalog.units[u["id"]] for u in sample]
+    for u in units:
+        run.unit_row(u, split)
+    before, _ = adapter.spend()
+    t0 = time.time()
+    decisions = run.run_split(units, S, config["prompt_versions"]["proposal"], args.workers)
+    after, _ = adapter.spend()
+    routes = {k: sum(1 for d in decisions if d["reason"] == k) for k in sorted({d["reason"] for d in decisions})}
+    writes = sum(1 for d in decisions if d["route"] == "WRITE")
+    print(f"{rev} {split}: {len(units)} units, {len(decisions)} decisions ({writes} automatic writes), asked {run.tally['asked']} reused "
+          f"{run.tally['reused']}, cost {providers.money(after - before)} USD, {round(time.time() - t0, 1)}s; routes {routes}; set_{rev}.json sha256 {rec['sha256'][:16]}")
+    return 0
+
+
+def policy(args, rev="r3", split="test"):
+    """run.py policy r3: the predeclared threshold delta on the sealed-test split. The expected invalidations are derived
+    from the stage identities alone before any call (an event records them), the pass then asks through the adapter,
+    and policy_report.json compares expected with observed per stage, lists re-derived rulings, and carries the cost
+    from the adapter's per-call records. r3 is recorded as a set and left inactive: r2 stays the published revision
+    for both splits (the delta's scope is the test split, and a published r3 would drop the evaluation split's reads)."""
+    protocol = retrieve.protocol_checked()
+    config = frozen_config()
+    adapter = providers.Adapter(protocol)
+    run = Run(protocol, adapter)
+    base = read_set("r2")
+    before_c, after_c = float(config["c_min"]), r3_threshold(float(config["c_min"]))
+    S3 = cards.make(rev, run.proposer, run.triad, c_min=after_c, qv={"propose": config["prompt_versions"]["proposal"]})
+    sample = [u for u in protocol["sample"]["units"] if u["split"] == split]
+    units = [run.catalog.units[u["id"]] for u in sample]
+    if not run.db.execute("SELECT COUNT(*) FROM decisions d JOIN units u ON u.unit_release=d.unit_release WHERE u.split=? AND d.revision='r2'", (split,)).fetchone()[0]:
+        print(f"refused: no r2 decisions for the {split} split; run the test pass first", file=sys.stderr)
+        return 2
+    # 1. the expected invalidations, from the identities alone, before any call
+    expected, open_ended = [], []
+    g_max = S3["params"]["G_max"]
+    for u in units:
+        rel = run.catalog.release(u["id"])
+        ext = None
+        for attempt in range(g_max + 1):
+            r = run.row("extractions", oid(providers.identity("extraction", unit_release=rel, attempt=attempt, prompt_version="extract-v1")))
+            if r:
+                ext = {"complete": True, "work_object": bool(json.loads(r["activities"])), "attempt_number": attempt + 1,
+                       "activities": json.loads(r["activities"])}
+                ext_id = r["output_id"]
+                break
+        if ext is None:
+            for attempt in range(g_max + 1):              # no stored extraction: the pass asks again and what follows is not derivable
+                expected.append({"unit_release": rel, "hub_entry": None, "stage": "extraction", "model": run.roles["extraction"]["model"]})
+            open_ended.append(rel)
+            continue
+        unit = {"id": u["id"], "type": u["type"], "text": u["text"], "family": u["family"]}
+        if engine.run_case({"unit": unit, "extraction": ext, "operational_ruling": None, "retrieval": {"candidate_ids": []}}, S3)["card_id"] in ("I1", "I4", "SS-scope"):
+            continue                                       # intake stops the unit before retrieval: nothing to ask
+        ix = run.index
+        rr = run.row("retrievals", oid(providers.identity("retrieval", unit_release=rel, retriever=ix["retriever"], index=ix["vectors_sha256"],
+                                                           hub_revision=ix["hub_revision"], k=ix["k"])))
+        if not rr:
+            expected.append({"unit_release": rel, "hub_entry": None, "stage": "embedding", "model": ix["model"]})
+            open_ended.append(rel)
+            continue
+        cands = json.loads(rr["candidates"])
+        for cand in cands:
+            pr = run.row("proposals", oid(providers.identity("proposal", unit_release=rel, extraction_output_id=ext_id, hub_entry=cand,
+                                                             hub_revision=ix["hub_revision"], prompt_version=config["prompt_versions"]["proposal"])))
+            if not pr:
+                expected.append({"unit_release": rel, "hub_entry": cand, "stage": "proposal", "model": run.proposer})
+                open_ended.append(rel)
+                continue
+            quotes = json.loads(pr["quotes"])
+            prop = {"level": pr["level"], "quotes": quotes, "confidence": pr["confidence"], "conflict": pr["level"] == cards.NULL and bool(quotes)}
+            case = {"unit": unit, "extraction": ext, "operational_ruling": None, "candidate": {"id": cand},
+                    "retrieval": {"candidate_ids": cands}, "proposal": prop, "votes": []}
+            if engine.run_case(case, S3)["card_id"] != "T1":
+                continue                                   # the evidence cards stop it under r3 too: no vote identity to re-ask
+            spans = hashlib.sha256(json.dumps(quotes).encode()).hexdigest()[:16]
+            for voter in run.triad:
+                q = providers.identity("vote", proposal_output_id=pr["output_id"], voter=voter, quoted_spans=spans, c_min=after_c, prompt_version="vote-v1")
+                if not run.row("votes", oid(q)):
+                    expected.append({"unit_release": rel, "hub_entry": cand, "stage": "vote", "model": voter})
+    adapter.event("expected_invalidations", revision=rev, split=split, threshold_before=before_c, threshold_after=after_c,
+                  calls=len(expected), by_stage={s: sum(1 for c in expected if c["stage"] == s) for s in ("extraction", "embedding", "proposal", "vote")},
+                  open_ended_units=sorted(set(open_ended)))
+    # 2. the pass: exactly those calls go out, every other output is reused
+    acc_before = sum(1 for _ in open(providers.ACCOUNTING, encoding="utf-8")) if os.path.isfile(providers.ACCOUNTING) else 0
+    ev_before = sum(1 for _ in open(providers.EVENTS, encoding="utf-8")) if os.path.isfile(providers.EVENTS) else 0
+    spend_before, _ = adapter.spend()
+    t0 = time.time()
+    decisions = run.run_split(units, S3, config["prompt_versions"]["proposal"], args.workers)
+    spend_after, _ = adapter.spend()
+    with open(providers.EVENTS, encoding="utf-8") as f:
+        events = [json.loads(l) for l in list(f)[ev_before:] if l.strip()]
+    with open(providers.ACCOUNTING, encoding="utf-8") as f:
+        charges = [json.loads(l) for l in list(f)[acc_before:] if l.strip()]
+    observed = [{"unit_release": e.get("unit_release"), "hub_entry": e.get("hub_entry"), "stage": e["stage"], "model": e["model"]}
+                for e in events if e.get("event") == "call_started" and e.get("call_attempt", 1) == 1]
+    key = lambda c: (c["unit_release"], c["hub_entry"], c["stage"], c["model"])
+    from collections import Counter
+    ce, co = Counter(map(key, expected)), Counter(map(key, observed))
+    counts = lambda cs: {s: sum(1 for c in cs if c["stage"] == s) for s in ("extraction", "embedding", "proposal", "vote")}
+    # 3. rulings naming a re-asked vote would be re-derived at no model cost; this run's rulings table holds none
+    rulings = run.db.execute("SELECT COUNT(*) FROM rulings").fetchone()[0]
+    rec = write_set(rev, S3, config, {"split": split, "units": len(units), "derived_from": "r2", "formula": protocol["r3"]["formula"],
+                                      "threshold_before": before_c, "threshold_after": after_c})
+    set_row(rec, False)
+    by_stage_cost = {}
+    for c in charges:
+        by_stage_cost[c["stage"]] = by_stage_cost.get(c["stage"], Decimal(0)) + Decimal(c["charged_usd"])
+    report = {"revision": rev, "split": split, "formula": protocol["r3"]["formula"], "threshold_before": before_c, "threshold_after": after_c,
+              "set_sha256": rec["sha256"], "expected_calls": expected, "observed_calls": observed,
+              "expected_counts": counts(expected), "observed_counts": counts(observed), "equal": ce == co,
+              "unplanned": [dict(zip(("unit_release", "hub_entry", "stage", "model"), k)) for k in (co - ce).elements()],
+              "missing": [dict(zip(("unit_release", "hub_entry", "stage", "model"), k)) for k in (ce - co).elements()],
+              "open_ended_units": sorted(set(open_ended)),
+              "rederived_rulings": [], "rulings_in_store": rulings,
+              "rederived_note": "no stored operational ruling names a vote (the run's rulings table holds none), so nothing is re-derived; "
+                                "the engine re-decides every re-asked pair under r3 at no model cost",
+              "decisions": len(decisions), "routes": {k: sum(1 for d in decisions if d["reason"] == k) for k in sorted({d["reason"] for d in decisions})},
+              "automatic_writes": sum(1 for d in decisions if d["route"] == "WRITE"),
+              "cost_usd": providers.money(spend_after - spend_before), "cost_by_stage_usd": {k: providers.money(v) for k, v in sorted(by_stage_cost.items())},
+              "charged_rows": len(charges), "asked": run.tally["asked"], "reused": run.tally["reused"], "seconds": round(time.time() - t0, 1), "ts": now()}
+    with open(os.path.join(HERE, "policy_report.json"), "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=1, sort_keys=True)
+        f.write("\n")
+    print(f"{rev} {split}: c_min {before_c} -> {after_c}; expected {report['expected_counts']} observed {report['observed_counts']} equal {report['equal']}; "
+          f"{len(decisions)} decisions ({report['automatic_writes']} automatic writes); asked {run.tally['asked']} reused {run.tally['reused']}; "
+          f"cost {report['cost_usd']} USD; {report['seconds']}s -> policy_report.json, set_{rev}.json sha256 {rec['sha256'][:16]}")
+    return 0 if report["equal"] else 3
+
+
+def replay(args):
+    """run.py replay: every live decision re-derived from the store with outbound calls disabled, on a copy of the store.
+    Live decisions are the published set's (r2, both splits) and r3's on the test split; replay_decisions.json says how many
+    matched. The calibration revisions are not published and are not replayed: an incomplete extraction attempt is not
+    stored, so a unit whose attempt 0 failed during calibration and succeeded later was decided from attempt 1 then and
+    would be walked from attempt 0 now (ir-8 under cal-1 and cal-2); the report names such units. An outbound attempt is
+    a ReplayViolation and the pass exits 5 (run_pass)."""
+    import shutil, tempfile
+    protocol = retrieve.protocol_checked()
+    config = frozen_config()
+    adapter = providers.Adapter(protocol, replay=True)
+    copy = os.path.join(tempfile.mkdtemp(prefix="replay-"), "run.sqlite")
+    shutil.copyfile(STORE, copy)
+    run = Run(protocol, adapter, db_path=copy)
+    live = sqlite3.connect(STORE)
+    live.row_factory = sqlite3.Row
+    plan = []
+    later_attempts = [dict(r) for r in live.execute("SELECT e.unit_release, e.attempt, e.created FROM extractions e WHERE e.attempt > 0 ORDER BY 1")]
+    S2 = frozen_set("r2", run, config)
+    for split in ("evaluation", "test"):
+        plan.append(("r2", split, S2, config["prompt_versions"]["proposal"]))
+    if os.path.isfile(os.path.join(HERE, "set_r3.json")):
+        S3 = cards.make("r3", run.proposer, run.triad, c_min=read_set("r3")["params"]["c_min"], qv={"propose": config["prompt_versions"]["proposal"]})
+        plan.append(("r3", "test", S3, config["prompt_versions"]["proposal"]))
+    t0 = time.time()
+    results, total, matched = [], 0, 0
+    for rev, split, S, pv in plan:
+        stored = {r["decision_id"]: dict(r) for r in live.execute(
+            "SELECT d.* FROM decisions d JOIN units u ON u.unit_release=d.unit_release WHERE d.revision=? AND u.split=? AND d.superseded_by IS NULL", (rev, split))}
+        if not stored:
+            results.append({"revision": rev, "split": split, "live": 0, "replayed": 0, "matched": 0, "skipped": "no live decisions"})
+            continue
+        unit_ids = sorted({d["unit_id"] for d in stored.values()})
+        units = [run.catalog.units[i] for i in unit_ids]
+        again = run.run_split(units, S, pv, args.workers)
+        same = lambda a, b: (a["route"], a["card_id"], a["level"], a["reason_code"]) == (b["route"], b["card_id"], b["level"], b["reason"])
+        ok = sum(1 for d in again if d["decision_id"] in stored and same(stored[d["decision_id"]], d))
+        mism = [d["decision_id"] for d in again if d["decision_id"] not in stored] + [i for i in stored if i not in {d["decision_id"] for d in again}]
+        results.append({"revision": rev, "split": split, "live": len(stored), "replayed": len(again), "matched": ok, "mismatched_ids": mism[:20]})
+        total += len(stored); matched += ok
+    report = {"store": os.path.basename(STORE), "outbound_attempts": adapter.replay_counter.get("attempts", 0), "revisions": results,
+              "not_replayed": {"calibration_revisions": "not published; an incomplete extraction attempt is not stored, so a walk that once took a later attempt is not reproducible",
+                               "units_with_a_later_extraction_attempt": later_attempts},
+              "live_decisions": total, "matched": matched, "equal": total == matched and all("mismatched_ids" not in r or not r["mismatched_ids"] for r in results),
+              "asked": run.tally["asked"], "reused": run.tally["reused"], "seconds": round(time.time() - t0, 1), "ts": now()}
+    with open(os.path.join(HERE, "replay_decisions.json"), "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=1, sort_keys=True)
+        f.write("\n")
+    print(f"replay: {total} live decisions, {matched} matched, outbound attempts {report['outbound_attempts']}, asked {run.tally['asked']} reused {run.tally['reused']}, "
+          f"{report['seconds']}s -> replay_decisions.json")
+    return 0 if report["equal"] else 3
+
+
 def main(argv):
     ap = argparse.ArgumentParser()
-    ap.add_argument("command", choices=["calibrate", "reconcile", "evaluate"])
+    ap.add_argument("command", choices=["calibrate", "reconcile", "evaluate", "test", "policy", "replay"])
     ap.add_argument("--units", type=int, default=0)
     ap.add_argument("--revisions", type=int, default=len(SCHEDULE))
     ap.add_argument("--workers", type=int, default=6)
     args = ap.parse_args(argv)
     if args.command == "evaluate":
         return providers.run_pass(lambda: evaluate(args))
+    if args.command == "test":
+        return providers.run_pass(lambda: test_pass(args))
+    if args.command == "policy":
+        return providers.run_pass(lambda: policy(args))
+    if args.command == "replay":
+        return providers.run_pass(lambda: replay(args))
     if args.command == "reconcile":
         removed = reconcile()
         print(f"reconcile: removed {len(removed)} stale terminal row(s)" + (": " + ", ".join(f"{r['unit_id']}@{r['revision']} {r['card_id']}" for r in removed) if removed else ""))
