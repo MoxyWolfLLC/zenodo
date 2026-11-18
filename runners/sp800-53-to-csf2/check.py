@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Item 5: the card table and the fixture harness.
 
+    python3 -I check.py            the offline checks: the same as --table
     python3 -I check.py --table
         every card id, reached on fixtures through the same engine the run uses; E1 is present_unreachable
         (route is retrieval only: H_max = 0); then one row per Scenario of goals/sp800-53-to-csf2-2/GOAL.md
@@ -459,7 +460,7 @@ def main(argv):
     ap.add_argument("--request")
     ap.add_argument("--output-dir")
     args = ap.parse_args(argv)
-    if args.table:
+    if args.table or not (args.request or args.output_dir):   # the bare entry is the offline check: the table and the scenarios
         return print_table(card_table(), scenario_table())
     if not (args.request and args.output_dir):
         print(__doc__)

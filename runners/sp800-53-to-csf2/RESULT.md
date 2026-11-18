@@ -58,7 +58,7 @@ The same rows for the sealed-test split's gated predictions, for comparison (`sc
 - evaluation: estimate **withheld**; retrieved stratum (weight 1): 308 ruled true links, 6 of them the run voted no_relationship, 13 pairs unresolved; non-retrieved stratum: 800 draws (5 per unit, weight 19.6), 19 true links, 4 unresolved; withheld because: 17 required ruling(s) unresolved (13 retrieved, 4 drawn); the frozen weights admit no non-response adjustment (`score.json` → `missed_links`).
 - sealed test: estimate **withheld**; retrieved stratum (weight 1): 220 ruled true links, 4 of them the run voted no_relationship, 9 pairs unresolved; non-retrieved stratum: 530 draws (5 per unit, weight 19.6), 13 true links, 3 unresolved; withheld because: 12 required ruling(s) unresolved (9 retrieved, 3 drawn); the frozen weights admit no non-response adjustment (`score.test.json` → `missed_links`).
 
-The estimate is withheld on both splits on Dorian's call (2026-11-17): the frozen weights come from the random draw and admit no non-response adjustment, so an unresolved ruling is a missing observation and the estimate is reported only when every required ruling is in. Uncertainty: with the estimate withheld, no interval is reported; the counts above are the complete inputs.
+The estimate is withheld on both splits on Dorian's call (2026-11-17): the frozen weights come from the random draw and admit no non-response adjustment, so an unresolved ruling is a missing observation and the estimate is reported only when every required ruling is in. Uncertainty: with the estimate withheld, no interval is reported; the counts above are the complete inputs (`score.json`, `score.test.json` → `missed_links`).
 
 ### Single-source error rates (SS-scope and SS-retrieval audit samples, per split)
 
@@ -137,11 +137,11 @@ Total charged: 4.2112 USD of the 60 USD cap (`protocol.json` → `budget`; worst
 
 - Gemini is reached through OpenRouter (Google's direct API returned 402 on every call on 2026-11-17; Dorian's instruction), against the plan's "only Mistral through OpenRouter"; the seat is still the Google family (`protocol.json` → `routing_note`).
 - The council's Google voice is gemini-2.5-flash-lite (so the OpenRouter worst case stays under its 20 USD cap) and its Mistral voice is mistral-large-2512: mistral-large-4-0 reasons before it answers, cannot be told not to, and returned empty content on 2,353 of 2,357 evaluation packets; the first gold assembly under it is retired and its rows stay in `run.sqlite` → `council_rulings` under that voice id.
-- The missed-link estimate is withheld while any required ruling is unresolved (Dorian, 2026-11-17: "withhold the estimate").
-- r3 is recorded as a set and left unpublished: the delta's scope is the sealed-test split and a published r3 would drop the evaluation split's public read.
-- The calibration revisions are not replayed: an incomplete extraction attempt is not stored (backlog: goal-sp800-53-to-csf2-2-follow-ups.md).
-- Item 1's merge has no release record (noted at the time); every later item has one.
-- The discover-command deviation declared at item 3 stands.
+- The missed-link estimate is withheld while any required ruling is unresolved (Dorian, 2026-11-17: "withhold the estimate"; `score.json`, `score.test.json` → `missed_links.withheld`).
+- r3 is recorded as a set and left unpublished (`run.sqlite` → `sets`; `set_r3.json`): the delta's scope is the sealed-test split and a published r3 would drop the evaluation split's public read.
+- The calibration revisions are not replayed: an incomplete extraction attempt is not stored (`replay_decisions.json` → `not_replayed`; backlog: goal-sp800-53-to-csf2-2-follow-ups.md).
+- The first item's merge has no release record (noted at the time; `peer-reviews/decisions` in the CKI workspace); every later item has one.
+- The discover-command deviation declared at the third item stands (its review record in `peer-reviews` in the CKI workspace).
 
 ## Measures with no producing item
 

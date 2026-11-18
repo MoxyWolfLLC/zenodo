@@ -3,7 +3,7 @@
 The second-domain instantiation of "Models Propose, Rules Decide" (the paper's method, run on real sources with live models). Stdlib-only Python 3.13. Everything the run produced is in this folder; `RESULT.md` reads the measures back from the files and names each file beside each number.
 
 ```
-python3 -I check.py --table          # the card table (26 PASS, E1 present_unreachable) and the 11 GOAL.md scenarios on fixtures
+python3 -I check.py                  # the offline checks: the card table (26 PASS, E1 present_unreachable) and the 11 GOAL.md scenarios on fixtures (--table is the same)
 python3 -I conform.py                # the run and policy graphs against Appendix C (exit 6 if the pinned baseline's hash moved)
 python3 -I result.py                 # RESULT.md and expected/check_output.txt from the run's files
 python3 -I tests_cards.py; python3 -I tests_adapter.py; python3 -I tests_run.py; python3 -I tests_gold.py; python3 -I tests_item8.py; python3 -I tests_conform.py

@@ -42,6 +42,15 @@ class Scenarios(unittest.TestCase):
         self.assertEqual(check.goal_scenarios(tempfile.mkdtemp()), [])
 
 
+class BareEntry(unittest.TestCase):
+    def test_check_py_with_no_arguments_runs_the_offline_checks(self):
+        p = subprocess.run([sys.executable, "-I", os.path.join(HERE, "check.py")], capture_output=True, text=True, cwd=HERE)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertIn("present_unreachable", p.stdout)
+        self.assertIn("scenarios PASS on fixtures", p.stdout)
+        self.assertNotIn("--request REQUEST.json", p.stdout, "the usage text is for a half-given request, not the bare entry")
+
+
 class Conform(unittest.TestCase):
     def test_zero_deviations_and_e1_named_on_the_shipped_graphs(self):
         tmp = tempfile.mkdtemp(); copy_runner(tmp)

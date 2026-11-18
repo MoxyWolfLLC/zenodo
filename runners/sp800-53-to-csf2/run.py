@@ -22,6 +22,9 @@ A finished calibration (config.frozen.json present) is never re-run over itself:
 says what to remove. An unfinished one (calibration.jsonl without config.frozen.json) resumes at the next revision
 of the schedule with the recorded rows kept, so revision ids stay unique and within the cap.
 
+What the item 8 passes write, by path: runners/sp800-53-to-csf2/policy_report.json (run.py policy), runners/sp800-53-to-csf2/set_r3.json,
+runners/sp800-53-to-csf2/replay_decisions.json (run.py replay); the undo drills' report is runners/sp800-53-to-csf2/undo_report.json (undo.py).
+
 What it reads: runners/sp800-53-to-csf2/protocol.json (the sample and its splits, roles, budget), index.json (the hub
 vectors), data/sp800-53r5_catalog.json (statements), runners/sp800-53-to-csf2/reference_semantics.json (the pinned
 NIST informative references from item 1: control-level entries with csf_element, target_oscal_id, csf_element_status,
@@ -53,6 +56,7 @@ DATA = os.path.join(HERE, "data")
 STORE = os.environ.get("GSTACK_STORE") or os.path.join(HERE, "run.sqlite")
 CALIBRATION = os.environ.get("GSTACK_CALIBRATION") or os.path.join(HERE, "calibration.jsonl")
 CONFIG = os.environ.get("GSTACK_CONFIG") or os.path.join(HERE, "config.frozen.json")
+REPLAY_DECISIONS = os.environ.get("GSTACK_REPLAY_DECISIONS") or os.path.join(HERE, "replay_decisions.json")   # tests redirect it
 PROGRESS = CALIBRATION + ".progress"      # the revision in flight and its ledger position before its first call
 
 
@@ -681,7 +685,7 @@ def replay(args):
         S3 = cards.make("r3", run.proposer, run.triad, c_min=read_set("r3")["params"]["c_min"], qv={"propose": config["prompt_versions"]["proposal"]})
         plan.append(("r3", "test", S3, config["prompt_versions"]["proposal"]))
     t0 = time.time()
-    results, total, matched = [], 0, 0
+    results, total, matched, violation = [], 0, 0, None
     for rev, split, S, pv in plan:
         stored = {r["decision_id"]: dict(r) for r in live.execute(
             "SELECT d.* FROM decisions d JOIN units u ON u.unit_release=d.unit_release WHERE d.revision=? AND u.split=? AND d.superseded_by IS NULL", (rev, split))}
@@ -690,22 +694,33 @@ def replay(args):
             continue
         unit_ids = sorted({d["unit_id"] for d in stored.values()})
         units = [run.catalog.units[i] for i in unit_ids]
-        again = run.run_split(units, S, pv, args.workers)
+        try:
+            again = run.run_split(units, S, pv, args.workers)
+        except providers.ReplayViolation as e:            # a walk needed a call: the report says where, then the pass exits 5
+            violation = {"revision": rev, "split": split, "error": str(e)}
+            results.append({"revision": rev, "split": split, "live": len(stored), "replayed": 0, "matched": 0, "outbound_attempt": True})
+            total += len(stored)
+            break
         same = lambda a, b: (a["route"], a["card_id"], a["level"], a["reason_code"]) == (b["route"], b["card_id"], b["level"], b["reason"])
         ok = sum(1 for d in again if d["decision_id"] in stored and same(stored[d["decision_id"]], d))
         mism = [d["decision_id"] for d in again if d["decision_id"] not in stored] + [i for i in stored if i not in {d["decision_id"] for d in again}]
         results.append({"revision": rev, "split": split, "live": len(stored), "replayed": len(again), "matched": ok, "mismatched_ids": mism[:20]})
         total += len(stored); matched += ok
-    report = {"store": os.path.basename(STORE), "outbound_attempts": adapter.replay_counter.get("attempts", 0), "revisions": results,
+    attempts = adapter.replay_counter.get("attempts", 0)
+    equal = violation is None and total == matched and all(not r.get("mismatched_ids") for r in results)   # one equality, both fields
+    report = {"store": os.path.basename(STORE), "outbound_attempts": attempts, "revisions": results,
               "not_replayed": {"calibration_revisions": "not published; an incomplete extraction attempt is not stored, so a walk that once took a later attempt is not reproducible",
                                "units_with_a_later_extraction_attempt": later_attempts},
-              "live_decisions": total, "matched": matched, "equal": total == matched and all("mismatched_ids" not in r or not r["mismatched_ids"] for r in results),
+              "live_decisions": total, "matched": matched,
+              "equal": equal, "violation": violation, "status": "failed" if violation else ("equal" if equal else "mismatch"),
               "asked": run.tally["asked"], "reused": run.tally["reused"], "seconds": round(time.time() - t0, 1), "ts": now()}
-    with open(os.path.join(HERE, "replay_decisions.json"), "w", encoding="utf-8") as f:
+    with open(REPLAY_DECISIONS, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=1, sort_keys=True)
         f.write("\n")
-    print(f"replay: {total} live decisions, {matched} matched, outbound attempts {report['outbound_attempts']}, asked {run.tally['asked']} reused {run.tally['reused']}, "
-          f"{report['seconds']}s -> replay_decisions.json")
+    print(f"replay: {total} live decisions, {matched} matched, outbound attempts {attempts}, asked {run.tally['asked']} reused {run.tally['reused']}, "
+          f"{report['seconds']}s -> {os.path.basename(REPLAY_DECISIONS)}" + (f"; outbound attempt under {violation['revision']} {violation['split']}" if violation else ""))
+    if violation:
+        raise providers.ReplayViolation(violation["error"])   # run_pass maps it to exit 5, after the report is on disk
     return 0 if report["equal"] else 3
 
 
