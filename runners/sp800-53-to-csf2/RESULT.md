@@ -102,7 +102,7 @@ The estimate is withheld on both splits on Dorian's call (2026-11-17): the froze
 ## Conformance with Appendix C
 
 - `conform.py`: 0 deviations across nodes, edges, card_ids, lanes, stores, decision_semantics for the run graph and the policy graph; baseline `baseline/appendix_c.md` sha256 `04eae5606ce53016` at paper commit `4c3a05ec6`; E1 present, exercised: False (`conformance.json`).
-- `check.py --table`: 26 cards PASS, E1 present_unreachable, 0 FAIL; 11 of 11 GOAL.md scenarios PASS on fixtures (`expected/check_output.txt`).
+- `check.py --table`: 26 cards PASS, E1 present_unreachable, no failures; 11 of 11 GOAL.md scenarios PASS on fixtures (`expected/check_output.txt`).
 
 ## Policy change, replay, undos
 

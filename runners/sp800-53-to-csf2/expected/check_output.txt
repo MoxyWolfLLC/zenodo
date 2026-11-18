@@ -28,7 +28,7 @@ H2               PASS
 H3               PASS                
 H4-otherwise     PASS                
 -------------------------------------
-26 PASS, 1 present_unreachable (E1: route is retrieval only, H_max = 0), 0 FAIL
+26 PASS, 1 present_unreachable (E1: route is retrieval only, H_max = 0), no failures
 
 scenario (GOAL.md)                                                                           result  
 -----------------------------------------------------------------------------------------------------
