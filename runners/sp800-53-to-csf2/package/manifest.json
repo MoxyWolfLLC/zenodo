@@ -85,8 +85,8 @@
   },
   {
    "path": "fetch_sources.py",
-   "sha256": "b4e2206781abf89bd81b65e6f9bcc31e7c3a9c6831e283e219f333705fd5d314",
-   "bytes": 14954
+   "sha256": "c5de8517d70c861c895120e2d6f290f0eac481c9c210ece42e4e7f56d722fe5e",
+   "bytes": 15196
   },
   {
    "path": "fixture_ops.py",
@@ -165,8 +165,8 @@
   },
   {
    "path": "result.py",
-   "sha256": "bd0e3b721507624b65c4c926b64143516e642bc4dbea214ab162f301b0ccc1ed",
-   "bytes": 16314
+   "sha256": "19fe155d3226deaf0c3c1ccc7971819013d6a5ccee306c8fbaa3f32b1f3e6690",
+   "bytes": 17164
   },
   {
    "path": "retrieve.py",
@@ -175,8 +175,8 @@
   },
   {
    "path": "run.py",
-   "sha256": "6ea43bcc6b37248a9fa795cf045fbf038610d414a21428e3592b695a86a469fb",
-   "bytes": 46988
+   "sha256": "bfb669c694426629a0985eb0338748d465c4c83569ce35d2237aff948f638788",
+   "bytes": 47271
   },
   {
    "path": "run.sqlite",

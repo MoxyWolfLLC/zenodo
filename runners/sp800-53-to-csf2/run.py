@@ -22,6 +22,9 @@ A finished calibration (config.frozen.json present) is never re-run over itself:
 says what to remove. An unfinished one (calibration.jsonl without config.frozen.json) resumes at the next revision
 of the schedule with the recorded rows kept, so revision ids stay unique and within the cap.
 
+What the item 8 passes write, by path: runners/sp800-53-to-csf2/policy_report.json (run.py policy), runners/sp800-53-to-csf2/set_r3.json,
+runners/sp800-53-to-csf2/replay_decisions.json (run.py replay); the undo drills' report is runners/sp800-53-to-csf2/undo_report.json (undo.py).
+
 What it reads: runners/sp800-53-to-csf2/protocol.json (the sample and its splits, roles, budget), index.json (the hub
 vectors), data/sp800-53r5_catalog.json (statements), runners/sp800-53-to-csf2/reference_semantics.json (the pinned
 NIST informative references from item 1: control-level entries with csf_element, target_oscal_id, csf_element_status,

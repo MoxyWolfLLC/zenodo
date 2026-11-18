@@ -1,6 +1,14 @@
 """Item 9: RESULT.md from the run's own files. Every number names the file it comes from.
 
     python3 -I result.py        writes RESULT.md and expected/check_output.txt (the current `check.py --table`), nothing else
+
+What it reads, by path: runners/sp800-53-to-csf2/score.json, runners/sp800-53-to-csf2/score.test.json,
+runners/sp800-53-to-csf2/gold.evaluation.json, runners/sp800-53-to-csf2/gold.test.json, runners/sp800-53-to-csf2/audit.evaluation.json,
+runners/sp800-53-to-csf2/audit.test.json, runners/sp800-53-to-csf2/policy_report.json, runners/sp800-53-to-csf2/replay_decisions.json,
+runners/sp800-53-to-csf2/undo_report.json, runners/sp800-53-to-csf2/queue.json, runners/sp800-53-to-csf2/conformance.json,
+runners/sp800-53-to-csf2/set_r2.json, runners/sp800-53-to-csf2/set_r3.json, runners/sp800-53-to-csf2/config.frozen.json,
+runners/sp800-53-to-csf2/protocol.json, runners/sp800-53-to-csf2/calibration.jsonl, runners/sp800-53-to-csf2/accounting.jsonl.
+What it writes: runners/sp800-53-to-csf2/RESULT.md, runners/sp800-53-to-csf2/expected/check_output.txt.
 """
 import json
 import os

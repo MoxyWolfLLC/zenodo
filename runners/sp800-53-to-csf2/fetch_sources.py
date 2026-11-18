@@ -9,6 +9,9 @@ and tags every reference entry by the semantics its source supports.
     python3 -I fetch_sources.py            fetch, hash, count, tag; writes data/ and the three JSON files
     python3 -I fetch_sources.py --check    re-hash data/ and recompute every count against sources.json; exit 2 on a mismatch
 
+What --check reads, by path: runners/sp800-53-to-csf2/sources.json (the pins and the counts) and the three files under
+runners/sp800-53-to-csf2/data/ it names (sp800-53r5_catalog.json, csf2_core_cprt.json, csf2_informative_references.xlsx).
+
 Exit codes: 0 ok; 2 a fetched or re-read file's hash differs from the pinned one (a first run that finds a
 sources.json whose hashes differ exits 2 and changes nothing); 3 a fetch failed.
 Stdout carries one line per file (name, bytes, SHA-256) and the counts. Stderr carries failures.
