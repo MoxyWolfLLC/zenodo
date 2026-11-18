@@ -235,8 +235,8 @@
   },
   {
    "path": "tests_conform.py",
-   "sha256": "2edf17aadacc364c3c1631ba20abaed2cda4795eccb8f4d12c87e0bb46d859fb",
-   "bytes": 2461
+   "sha256": "de6decc444dd6a99159dd2e991b489db38b27179a91c21c7a1526c027378f282",
+   "bytes": 3466
   },
   {
    "path": "tests_gold.py",

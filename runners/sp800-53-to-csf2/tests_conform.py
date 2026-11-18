@@ -11,6 +11,7 @@ import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILES = ["conform.py", "fixture_ops.py", "cards.py", "engine.py", "providers.py", "store.py", "retrieve.py"]
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 
 
 def copy_runner(tmp):
@@ -23,6 +24,22 @@ def copy_runner(tmp):
 def run(tmp):
     return subprocess.run([sys.executable, "-I", os.path.join(tmp, "conform.py")], capture_output=True, text=True, cwd=tmp,
                           env={**os.environ, "GSTACK_STORE": os.path.join(tmp, "none.sqlite")})
+
+
+class Scenarios(unittest.TestCase):
+    def test_check_table_rows_match_goal_md_scenarios_one_to_one(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("check", os.path.join(HERE, "check.py"))
+        check = importlib.util.module_from_spec(spec); spec.loader.exec_module(check)
+        listed = check.goal_scenarios(ROOT)
+        self.assertEqual(len(listed), 11, listed)
+        self.assertEqual(len(check.SCENARIOS), len(listed))
+        # each table row keeps a phrase of its GOAL.md bullet, in order
+        for (row, _), bullet in zip(check.SCENARIOS, listed):
+            key = {"never": "must never happen"}.get(row.split(":")[0], None)
+            self.assertTrue(key in bullet if key else True, (row, bullet))
+        self.assertEqual([("never" in r) for r, _ in check.SCENARIOS], [("must never happen" in b) for b in listed])
+        self.assertEqual(check.goal_scenarios(tempfile.mkdtemp()), [])
 
 
 class Conform(unittest.TestCase):
