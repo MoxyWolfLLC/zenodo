@@ -101,12 +101,12 @@ def token_bound(text):
 def run_pass(fn):
     """Run a pass body; map the adapter's refusals to the plan's exit codes: 4 budget, 5 replay."""
     try:
-        fn()
+        rc = fn()
     except BudgetRefused:
         return 4
     except ReplayViolation:
         return 5
-    return 0
+    return int(rc or 0)      # a body's own exit code (a refusal, a mismatch) is the pass's
 
 
 def _env_key(name, file_var):

@@ -1,0 +1,49 @@
+{
+ "config_sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359",
+ "derived_from": "r2",
+ "engine": "54dae60c336a1789",
+ "formula": "threshold_r2 - 0.2 floored at 0; if that leaves the value unchanged, threshold_r2 + 0.2 capped at 1",
+ "frozen": "2026-11-18T00:33:52Z",
+ "gates": {
+  "equal": "closed",
+  "intersects_with": "closed",
+  "no_match": "closed",
+  "subset_of": "closed",
+  "superset_of": "closed"
+ },
+ "params": {
+  "G_max": 2,
+  "H_max": 0,
+  "a_scope": 0.2,
+  "c_min": 0.5,
+  "closed": [
+   "equal",
+   "intersects_with",
+   "no_match",
+   "subset_of",
+   "superset_of"
+  ],
+  "k": 8,
+  "out_of_scope_types": [
+   "withdrawn"
+  ]
+ },
+ "proposer": "openai/gpt-6-luna",
+ "protocol_sha256": "c6fa1c26cc6bb4d76938082692e665d3cf8d61838ae8c3f87c5d326e33a49492",
+ "qv": {
+  "extract": "extract-v1",
+  "propose": "propose-v1",
+  "triad": "vote-v1"
+ },
+ "revision": "r3",
+ "sha256": "81e27ee6b0b1a2f4fa50e09570aa5fae78e381fc99aff3e5b76510b15dcd71b6",
+ "split": "test",
+ "threshold_after": 0.5,
+ "threshold_before": 0.7,
+ "triad": [
+  "anthropic/claude-haiku-5.5",
+  "google/gemini-2.5-flash-lite",
+  "mistralai/mistral-small-2603"
+ ],
+ "units": 106
+}
