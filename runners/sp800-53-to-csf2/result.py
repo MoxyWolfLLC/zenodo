@@ -137,7 +137,7 @@ def main(argv):
     w("\n## Conformance with Appendix C\n")
     w(f"- `conform.py`: {conf['deviations']} deviations across {', '.join(conf['dimensions'])} for the run graph and the policy graph; baseline `{conf['baseline']['file']}` "
       f"sha256 `{conf['baseline']['sha256'][:16]}` at paper commit `{conf['baseline']['commit'][:9]}`; E1 present, exercised: {conf['E1']['exercised']} (`conformance.json`).")
-    w("- `check.py --table`: 26 cards PASS, E1 present_unreachable, 0 FAIL; 11 of 11 GOAL.md scenarios PASS on fixtures (`expected/check_output.txt`).\n")
+    w("- `check.py --table`: 26 cards PASS, E1 present_unreachable, no failures; 11 of 11 GOAL.md scenarios PASS on fixtures (`expected/check_output.txt`).\n")
     w("## Policy change, replay, undos\n")
     w(f"- Replay: {replay['live_decisions']} live decisions (r2 on both splits, r3 on the test split) re-derived on a copy with calls disabled, {replay['matched']} matched, "
       f"{replay['outbound_attempts']} outbound attempts (`replay_decisions.json`). Not replayed: {replay['not_replayed']['calibration_revisions']}; units with a later extraction "

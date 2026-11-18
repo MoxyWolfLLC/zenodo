@@ -15,8 +15,8 @@
   },
   {
    "path": "RESULT.md",
-   "sha256": "9fa6cf1389268b3b985e5ca499d59286683e79334f801ef498fbc02203efc379",
-   "bytes": 12869
+   "sha256": "7f43bf3533e81a51749a4f572767520c031a95e19bd55d5393fa7247656c9b4a",
+   "bytes": 12874
   },
   {
    "path": "accounting.jsonl",
@@ -55,8 +55,8 @@
   },
   {
    "path": "check.py",
-   "sha256": "54d1c0ad3e155f3cb61f479a1ada3ad7ca41e4dc818589d6dc0e8436afcca920",
-   "bytes": 25546
+   "sha256": "98a22a013d8dfebe6dd94d737d45fad662d5d4bfd96f7c1c6e883e7cd9b6a639",
+   "bytes": 25648
   },
   {
    "path": "config.frozen.json",
@@ -165,8 +165,8 @@
   },
   {
    "path": "result.py",
-   "sha256": "3b382a4cf223bada911fae89c06cf1298ae3018abfa9a2660526215bcbdae799",
-   "bytes": 15988
+   "sha256": "2c13126cee568ff1380b46bda3bbdb05bf8ebe87c5a54a910674dc7dc6259194",
+   "bytes": 15993
   },
   {
    "path": "retrieve.py",
@@ -265,8 +265,8 @@
   },
   {
    "path": "expected/check_output.txt",
-   "sha256": "f1b99aa2b7a6676a353cc843a7ac4fe9b0b6e9df2c0abdc28129adbf19d41f2b",
-   "bytes": 2685
+   "sha256": "dc6ab67bc28901d4f15ee6187a1618d06821ff507cb2ebec9b2a29e04b0902b3",
+   "bytes": 2690
   },
   {
    "path": "baseline/appendix_c.md",

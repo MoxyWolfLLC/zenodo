@@ -235,9 +235,10 @@ def print_table(table, scenarios=None):
         print(f"{cid:<16} {res:<20}")
     ok = all(r in ("PASS", "present_unreachable") for r in table.values())
     print("-" * 37)
+    failed = sum(r == "FAIL" for r in table.values())
     print(f"{sum(r == 'PASS' for r in table.values())} PASS, "
           f"{sum(r == 'present_unreachable' for r in table.values())} present_unreachable (E1: route is retrieval only, H_max = 0), "
-          f"{sum(r == 'FAIL' for r in table.values())} FAIL")
+          + (f"{failed} FAIL" if failed else "no failures"))   # the word FAIL appears only when a row failed
     if scenarios is not None:
         print()
         print(f"{'scenario (GOAL.md)':<92} {'result':<8}")
