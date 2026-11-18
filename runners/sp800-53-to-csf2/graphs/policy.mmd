@@ -1,0 +1,58 @@
+%%{init: {"flowchart": {"defaultRenderer": "elk"}}}%%
+%% Figure 2 (canonical). The policy graph, revision 2: reproduction, policy evaluation, activation, undo.
+%% Held-out SP 800-53 controls are predicted; held-out rulings only score those predictions, afterward.
+%% Panels 2a to 2d are literal cuts of this graph. Card ids match the reference runner (Appendix D).
+flowchart LR
+ subgraph OWN["Policy owner"]
+  PROP["Propose a card<br/>revision (set rN+1)"]
+  ACT{"Activate<br/>set rN+1?"}
+ end
+ subgraph RUN["Runner"]
+  REP["Reproduce a past decision:<br/>its own set over its own stored<br/>outputs, candidate set and ruling"]
+  SAME{"Same route,<br/>level and reason?"}
+  EVAL["Evaluate the changed policy,<br/>one candidate at a time"]
+  REUSE{"Same question and<br/>same evidence as the<br/>stored output or ruling?"}
+  CARDS["Predict: run set rN+1<br/>on held-out SP 800-53 controls"]
+  SCORE["Score per level against<br/>held-out rulings, after predicting"]
+  RPT["Report per level: precision and<br/>Wilson lower bound, missed links,<br/>no matches, coverage, re-asked<br/>outputs and their cost"]
+  RD["Re-decide every live decision:<br/>replay the active set over stored<br/>outputs, ask only what it never had"]
+  REV["Publication reversal:<br/>reactivate rN"]
+  RCV["Data recovery: restore the<br/>rows in the bad write's<br/>recorded footprint"]
+ end
+ subgraph DB["Store"]
+  SO[("Stored outputs, candidate sets,<br/>rulings (question version,<br/>evidence shown)")]
+  DEC[("Decisions (set revision;<br/>superseded rows kept)")]
+  ACR[("Activation records<br/>(who, when, report seen)")]
+  WR[("Write footprints<br/>(rows, before, after)")]
+  PUB[("Public reads<br/>(per level)")]
+ end
+ subgraph MOD["Proposer, triad and reviewers"]
+  ASK["Asked again and stored;<br/>a ruling whose evidence<br/>changed goes back to review"]
+ end
+ subgraph EV["Evaluation split (fixed before calibration; never tuned on)"]
+  HS["Held-out SP 800-53 controls"]
+  HRL["Held-out rulings"]
+ end
+ DEC --> REP
+ SO --> REP
+ REP -- "zero model calls,<br/>no one asked to rule" --> SAME
+ SAME -- "yes" --> OK(["Reproduced"])
+ SAME -- "otherwise" --> BUG(["Replay defect:<br/>investigate"])
+ PROP --> EVAL --> REUSE
+ REUSE -- "yes: reuse" --> SO
+ SO -- "operational rulings only;<br/>held-out rulings never<br/>enter prediction" --> CARDS
+ REUSE -- "otherwise" --> ASK --> CARDS
+ HS -- "SP 800-53 controls to predict" --> CARDS
+ CARDS -- "predictions" --> SCORE
+ HRL -- "answers, for<br/>scoring only" --> SCORE
+ SCORE --> RPT --> ACT
+ ACT -- "yes" --> ACR
+ ACR --> RD --> DEC
+ SO --> RD
+ RD -- "what it never had" --> ASK
+ DEC --> PUB
+ ACT -- "otherwise" --> KEEP(["Set rN stays active"])
+ PUB -. "undo 1. Pass: reads equal<br/>a fresh replay of rN" .-> REV
+ REV --> RD
+ WR -. "undo 2. Pass: only footprint<br/>rows change, to pre-write values" .-> RCV
+ RCV --> DEC

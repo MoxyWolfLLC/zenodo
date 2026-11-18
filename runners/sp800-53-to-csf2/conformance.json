@@ -1,0 +1,81 @@
+{
+ "E1": {
+  "exercised": false,
+  "present": true
+ },
+ "baseline": {
+  "commit": "4c3a05ec6b038d092f42e933d8a36ccc1d95c9b2",
+  "file": "baseline/appendix_c.md",
+  "sha256": "04eae5606ce5301650b313ca49c041d757d90dabc91ff22e965a1ce713c0c145",
+  "source": "CKI/11 - Project Knowledge/Papers/models-propose-rules-decide/models-propose-rules-decide_1.1.md"
+ },
+ "deviations": 0,
+ "diff": {
+  "policy": {
+   "card_ids": [],
+   "decision_semantics": [],
+   "edges": [],
+   "lanes": [],
+   "nodes": [],
+   "stores": []
+  },
+  "run": {
+   "card_ids": [],
+   "decision_semantics": [],
+   "edges": [],
+   "lanes": [],
+   "nodes": [],
+   "stores": []
+  }
+ },
+ "dimensions": [
+  "nodes",
+  "edges",
+  "card_ids",
+  "lanes",
+  "stores",
+  "decision_semantics"
+ ],
+ "graphs": {
+  "policy": "graphs/policy.mmd",
+  "run": "graphs/run.mmd"
+ },
+ "normalizations": [
+  {
+   "domain": "SP 800-53 work items",
+   "paper": "Work items"
+  },
+  {
+   "domain": "SP 800-53 controls",
+   "paper": "units"
+  },
+  {
+   "domain": "SP 800-53 control",
+   "paper": "unit"
+  },
+  {
+   "domain": "CSF 2.0 subcategories",
+   "paper": "hub entries"
+  },
+  {
+   "domain": "CSF 2.0 subcategory",
+   "paper": "hub entry"
+  },
+  {
+   "domain": "CSF 2.0 catalog",
+   "paper": "hub"
+  },
+  {
+   "domain": "Council reviewer",
+   "paper": "Reviewer"
+  },
+  {
+   "domain": "council reviewer",
+   "paper": "reviewer"
+  },
+  {
+   "domain": "no_relationship",
+   "paper": "no match"
+  }
+ ]
+}

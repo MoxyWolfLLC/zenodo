@@ -3,7 +3,10 @@
 
     python3 -I check.py --table
         every card id, reached on fixtures through the same engine the run uses; E1 is present_unreachable
-        (route is retrieval only: H_max = 0); exit 0 only when every row is PASS or present_unreachable
+        (route is retrieval only: H_max = 0); then one row per Scenario of goals/sp800-53-to-csf2-2/GOAL.md
+        (its "## Scenarios" section, read at run time and matched one to one against SCENARIOS below), each run
+        on fixtures through the goal's own suite, goals/sp800-53-to-csf2-2/tests/test_runner.py; exit 0 only when
+        every card row is PASS or present_unreachable and every scenario row is PASS
 
     python3 -I -B check.py --request REQUEST.json --output-dir OUTPUT
         the goal's black-box interface: {operation, transport: "fixture", payload}. Writes result.json,
@@ -29,6 +32,7 @@ import itertools
 import json
 import math
 import os
+import re
 import sys
 import time
 from decimal import Decimal
@@ -163,7 +167,68 @@ def card_table():
     return table
 
 
-def print_table(table):
+SCENARIOS = [   # GOAL.md Scenarios, in order, each with the goal test that runs it on fixtures
+    ("conformance diff against Appendix C, zero deviations or each named as a fork", "Conformance.test_graph_diff_against_pinned_appendix_c"),
+    ("every decision replays under its revision with the network disabled, call counter zero", "Replay.test_replays_every_decision_with_network_disabled"),
+    ("r3's predeclared change re-asks exactly the expected invalidations", "Policy.test_predeclared_change_reasks_exactly_the_expected_calls"),
+    ("set r1 with every gate closed writes nothing; a level opens only on the Wilson bound over 25", "Gates.test_closed_gates_write_nothing_and_open_only_on_the_bound"),
+    ("the frozen protocol's hash equals the pre-call record; every family in one split", "Protocol.test_frozen_protocol_hash_and_family_preserving_splits"),
+    ("no primary gold packet contains a proposal, vote, confidence, route or prediction", "Gold.test_primary_gold_packets_are_blind"),
+    ("the budget guard refuses a call past the allowance and records the refusal", "Budget.test_guard_refuses_a_call_past_the_allowance"),
+    ("never: a primary gold label from a packet containing proposals or votes", "Gold.test_primary_gold_packets_are_blind"),
+    ("never: a stored vote whose provider equals the proposer's", "Triad.test_proposer_never_votes"),
+    ("never: a ledger write by a model output or a council ruling rather than a card", "Gates.test_closed_gates_write_nothing_and_open_only_on_the_bound"),
+    ("never: an Appendix C card, lane or store changed to make the domain fit", "Conformance.test_graph_diff_against_pinned_appendix_c"),
+]
+
+
+def goal_scenarios(root):
+    """The bullets of GOAL.md's '## Scenarios' section, in order; [] when the file is absent."""
+    path = os.path.join(root, "goals", "sp800-53-to-csf2-2", "GOAL.md")
+    if not os.path.isfile(path):
+        return []
+    out, inside = [], False
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("## "):
+                inside = line.strip() == "## Scenarios"
+                continue
+            if inside and line.startswith("- "):
+                out.append(line[2:].strip())
+    return out
+
+
+def scenario_table():
+    """One row per Scenario in GOAL.md, run on fixtures through the goal's own suite (a subprocess from a copy outside the
+    checkout, GOAL_CANDIDATE set to this checkout), the way the goal gate runs it. SCENARIOS is checked against GOAL.md's
+    section one to one (same count, same order by the words each row keeps); a mismatch fails every row. Absent suite:
+    every row 'not run'."""
+    import subprocess, tempfile, shutil
+    root = os.path.abspath(os.path.join(HERE, "..", ".."))
+    listed = goal_scenarios(root)
+    if listed and len(listed) != len(SCENARIOS):
+        return {s: f"FAIL (GOAL.md lists {len(listed)} scenarios, this table {len(SCENARIOS)})" for s, _ in SCENARIOS}
+    suite = os.path.join(root, "goals", "sp800-53-to-csf2-2", "tests", "test_runner.py")
+    if not os.path.isfile(suite):
+        return {s: "not run (goal suite absent)" for s, _ in SCENARIOS}
+    tmp = tempfile.mkdtemp(prefix="scenarios-")
+    shutil.copyfile(suite, os.path.join(tmp, "test_runner.py"))
+    env = {**os.environ, "GOAL_CANDIDATE": root}
+    proc = subprocess.run([sys.executable, "-I", "-B", os.path.join(tmp, "test_runner.py"), "-v"], cwd=root, env=env,
+                          capture_output=True, text=True, timeout=1800)
+    shutil.rmtree(tmp, ignore_errors=True)
+    results, pending = {}, None          # verbose lines: "test_x (__main__.Class.test_x)" then, after the docstring's first line, "... ok"
+    for line in (proc.stderr + proc.stdout).splitlines():
+        m = re.match(r"(test_\w+) \((?:__main__\.)?(\w+)\.(test_\w+)\)", line.strip())
+        if m:
+            pending = f"{m.group(2)}.{m.group(3)}"
+        r = re.search(r"\.\.\. (ok|FAIL|ERROR|skipped.*)$", line.strip())
+        if r and pending:
+            results[pending] = "FAIL" if (r.group(1) != "ok" or results.get(pending) == "FAIL") else "PASS"
+    return {s: results.get(t, "not run (no result line)") for s, t in SCENARIOS}
+
+
+def print_table(table, scenarios=None):
     print(f"{'card':<16} {'result':<20}")
     print("-" * 37)
     for cid, res in table.items():
@@ -173,6 +238,15 @@ def print_table(table):
     print(f"{sum(r == 'PASS' for r in table.values())} PASS, "
           f"{sum(r == 'present_unreachable' for r in table.values())} present_unreachable (E1: route is retrieval only, H_max = 0), "
           f"{sum(r == 'FAIL' for r in table.values())} FAIL")
+    if scenarios is not None:
+        print()
+        print(f"{'scenario (GOAL.md)':<92} {'result':<8}")
+        print("-" * 101)
+        for s, res in scenarios.items():
+            print(f"{s:<92} {res:<8}")
+        print("-" * 101)
+        print(f"{sum(r == 'PASS' for r in scenarios.values())} of {len(scenarios)} scenarios PASS on fixtures")
+        ok = ok and all(r == "PASS" for r in scenarios.values())
     return 0 if ok else 1
 
 
@@ -385,7 +459,7 @@ def main(argv):
     ap.add_argument("--output-dir")
     args = ap.parse_args(argv)
     if args.table:
-        return print_table(card_table())
+        return print_table(card_table(), scenario_table())
     if not (args.request and args.output_dir):
         print(__doc__)
         return 2

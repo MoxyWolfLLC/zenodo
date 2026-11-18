@@ -1,0 +1,79 @@
+{
+ "note": "Labels only: each paper noun may be replaced by the domain noun on the left of the arrow, whole words, and nothing else may change. conform.py reads a label back to the paper's noun with these pairs before comparing.",
+ "domain_to_paper": [
+  {
+   "domain": "SP 800-53 work items",
+   "paper": "Work items"
+  },
+  {
+   "domain": "SP 800-53 controls",
+   "paper": "units"
+  },
+  {
+   "domain": "SP 800-53 control",
+   "paper": "unit"
+  },
+  {
+   "domain": "CSF 2.0 subcategories",
+   "paper": "hub entries"
+  },
+  {
+   "domain": "CSF 2.0 subcategory",
+   "paper": "hub entry"
+  },
+  {
+   "domain": "CSF 2.0 catalog",
+   "paper": "hub"
+  },
+  {
+   "domain": "Council reviewer",
+   "paper": "Reviewer"
+  },
+  {
+   "domain": "council reviewer",
+   "paper": "reviewer"
+  },
+  {
+   "domain": "no_relationship",
+   "paper": "no match"
+  }
+ ],
+ "paper_to_domain": [
+  {
+   "paper": "Work items",
+   "domain": "SP 800-53 work items"
+  },
+  {
+   "paper": "hub entries",
+   "domain": "CSF 2.0 subcategories"
+  },
+  {
+   "paper": "hub entry",
+   "domain": "CSF 2.0 subcategory"
+  },
+  {
+   "paper": "units",
+   "domain": "SP 800-53 controls"
+  },
+  {
+   "paper": "unit",
+   "domain": "SP 800-53 control"
+  },
+  {
+   "paper": "hub",
+   "domain": "CSF 2.0 catalog"
+  },
+  {
+   "paper": "reviewer",
+   "domain": "council reviewer"
+  },
+  {
+   "paper": "Reviewer",
+   "domain": "Council reviewer"
+  },
+  {
+   "paper": "no match",
+   "domain": "no_relationship"
+  }
+ ]
+}

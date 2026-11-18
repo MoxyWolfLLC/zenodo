@@ -15,6 +15,54 @@
    0.7693
   ]
  },
+ "automatic_write_rows": [
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "subset_of",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "intersects_with",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "equal",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "superset_of",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "no_relationship",
+   "n": 0,
+   "wilson_lower": 0.0
+  }
+ ],
+ "automatic_writes": 0,
  "c_min": 0.7,
  "config_sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359",
  "council_agreement": {
@@ -40,6 +88,53 @@
   "retrieved_voted_no_relationship_true_links": 6,
   "withheld": "17 required ruling(s) unresolved (13 retrieved, 4 drawn); the frozen weights admit no non-response adjustment"
  },
+ "prediction_rows": [
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 1,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "subset_of",
+   "n": 8,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 98,
+   "families_with_multiple_outcomes": 26,
+   "gate_decision": "closed",
+   "gate_open": false,
+   "level": "intersects_with",
+   "n": 150,
+   "wilson_lower": 0.587212
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 15,
+   "gate_decision": "closed",
+   "gate_open": false,
+   "level": "equal",
+   "n": 72,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "superset_of",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 61,
+   "families_with_multiple_outcomes": 17,
+   "gate_decision": "closed",
+   "gate_open": false,
+   "level": "no_relationship",
+   "n": 67,
+   "wilson_lower": 0.83605
+  }
+ ],
  "predictions": {
   "pairs": 1272,
   "unresolved_gold": 13,
@@ -94,8 +189,9 @@
    "wilson_lower": 0.83605
   }
  ],
- "scored": "2026-11-17T22:52:43Z",
- "sha256": "d9a2029cb57b306f352881e8ffec1796d3e6f80eadacd3aed5d152b4c413f300",
+ "rows_basis": "predictions, gated or not",
+ "scored": "2026-11-18T00:58:20Z",
+ "sha256": "d16af2e41d3610218a47fd02dafecb0a21090504632fdbbc0a1ee3fd92c7eed2",
  "split": "evaluation",
  "ss_audit": {
   "SS-retrieval": {
