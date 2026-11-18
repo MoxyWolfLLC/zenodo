@@ -704,12 +704,12 @@ def replay(args):
         results.append({"revision": rev, "split": split, "live": len(stored), "replayed": len(again), "matched": ok, "mismatched_ids": mism[:20]})
         total += len(stored); matched += ok
     attempts = adapter.replay_counter.get("attempts", 0)
+    equal = violation is None and total == matched and all(not r.get("mismatched_ids") for r in results)   # one equality, both fields
     report = {"store": os.path.basename(STORE), "outbound_attempts": attempts, "revisions": results,
               "not_replayed": {"calibration_revisions": "not published; an incomplete extraction attempt is not stored, so a walk that once took a later attempt is not reproducible",
                                "units_with_a_later_extraction_attempt": later_attempts},
               "live_decisions": total, "matched": matched,
-              "equal": violation is None and total == matched and all(not r.get("mismatched_ids") for r in results),
-              "violation": violation, "status": "failed" if violation else ("equal" if total == matched else "mismatch"),
+              "equal": equal, "violation": violation, "status": "failed" if violation else ("equal" if equal else "mismatch"),
               "asked": run.tally["asked"], "reused": run.tally["reused"], "seconds": round(time.time() - t0, 1), "ts": now()}
     with open(REPLAY_DECISIONS, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=1, sort_keys=True)
