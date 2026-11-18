@@ -1,0 +1,94 @@
+%%{init: {"flowchart": {"defaultRenderer": "elk"}}}%%
+%% Figure 1 (canonical). The run graph, revision 2: one SP 800-53 control from extraction to recorded decision.
+%% Lanes = who acts. Diamonds = rule cards in the active set revision, in a fixed normative order;
+%% first match wins; the last card of every list is "otherwise". Models propose and vote; cards decide.
+%% Card ids match the reference runner (Appendix D). Panels 1a to 1c are literal cuts of this graph.
+%% SSS, CA and HR condense the audit, curator and ruling lists of Table 4 (A1 to A2, K1 to K3, H1 to H4);
+%% a sampled SSS record also enters RQ, and a pending curator item (K3) stays queued.
+%% M is the panel size (three by default); a majority is a strict majority of M.
+flowchart LR
+ subgraph DB["Store: state, stored outputs, ledger"]
+  WI[("SP 800-53 work items<br/>(gap and CSF 2.0 catalog attempts)")]
+  SO[("Stored outputs: extraction, candidate set<br/>with retriever, index and CSF 2.0 catalog versions,<br/>proposals, votes, each with question<br/>version and evidence")]
+  RQ[("Review queue<br/>(reason code)")]
+  LED[("Ledger: decisions and links<br/>(set revision, level, route, reason)")]
+ end
+ subgraph RUN["Runner and active card set (set rN)"]
+  START(["Pick next SP 800-53 control"])
+  I1{"I1 Out of scope<br/>by metadata?"}
+  I3{"I3 Incomplete,<br/>retries left?"}
+  I4{"I4 Incomplete,<br/>retries spent?"}
+  SSS{"SS-scope Out of<br/>scope by content?"}
+  I5{"I5 otherwise"}
+  RET["Retrieve candidates"]
+  SSR{"SS-retrieval<br/>Nothing retrieved?"}
+  R2{"R2 otherwise"}
+  E1{"E1 New CSF 2.0 subcategory,<br/>loops left?"}
+  E2{"E2 New CSF 2.0 subcategory,<br/>loops spent?"}
+  E3{"E3 Unverifiable, low<br/>confidence, conflict?"}
+  E4{"E4 otherwise"}
+  T1{"T1 Fewer than<br/>M valid votes?"}
+  T2{"T2 Majority no_relationship,<br/>gate open?"}
+  T2G{"T2-gated<br/>Majority no_relationship?"}
+  T3{"T3 Majority same level,<br/>gate open?"}
+  T3G{"T3-gated<br/>Majority same level?"}
+  T4{"T4 Majority link,<br/>no majority level?"}
+  T5{"T5 otherwise"}
+  REC["Record decision and<br/>provenance (one transaction)"]
+ end
+ subgraph PRO["Proposer model"]
+  EM["Extract the SP 800-53 control's content"]
+  PR["Propose: answer (null = no_relationship),<br/>level, confidence, verbatim quotes"]
+ end
+ subgraph TRI["Decision triad (three providers, none the proposer's)"]
+  TV["Each answers the same question about<br/>the SP 800-53 control, candidate and quoted spans;<br/>never sees the proposer's answer"]
+ end
+ subgraph HUM["Council reviewer and assessor"]
+  HR["Rule on a queued item: accept at<br/>a level, no_relationship, or out of scope"]
+  CH["Challenge any ledger decision"]
+ end
+ subgraph CUR["Hub curator"]
+  CA{"Approve new<br/>CSF 2.0 subcategory?"}
+ end
+ WI --> START --> I1
+ I1 -- "yes: out of scope (rule)" --> REC
+ I1 -- "otherwise" --> EM --> I3
+ EM -- "stored" --> SO
+ I3 -- "yes: attempts + 1" --> EM
+ I3 -- "otherwise" --> I4
+ I4 -- "yes: gap exhausted" --> RQ
+ I4 -- "otherwise" --> SSS
+ SSS -- "yes: out of scope (content),<br/>sampled for audit" --> REC
+ SSS -- "otherwise" --> I5 --> RET
+ RET -- "stored with versions" --> SO
+ RET --> SSR
+ SSR -- "yes: no_relationship, nothing retrieved;<br/>audited by CSF 2.0 catalog sample" --> REC
+ SSR -- "otherwise" --> R2 --> PR
+ PR -- "stored" --> SO
+ PR --> E1
+ E1 -- "yes" --> CA
+ CA -- "yes: CSF 2.0 catalog revision + 1,<br/>CSF 2.0 catalog attempts + 1, reopen SP 800-53 control;<br/>prior pass superseded" --> RET
+ CA -- "otherwise: entry declined,<br/>no_relationship" --> REC
+ E1 -- "otherwise" --> E2
+ E2 -- "yes: CSF 2.0 catalog loop exhausted" --> RQ
+ E2 -- "otherwise" --> E3
+ E3 -- "yes: evidence unclear" --> RQ
+ E3 -- "otherwise" --> E4 --> TV
+ TV -- "votes stored" --> SO
+ TV --> T1
+ T1 -- "yes: incomplete triad" --> RQ
+ T1 -- "otherwise" --> T2
+ T2 -- "yes: voted no_relationship" --> REC
+ T2 -- "otherwise" --> T2G
+ T2G -- "yes: no-match gate closed" --> RQ
+ T2G -- "otherwise" --> T3
+ T3 -- "yes: write at agreed level" --> REC
+ T3 -- "otherwise" --> T3G
+ T3G -- "yes: level gate closed" --> RQ
+ T3G -- "otherwise" --> T4
+ T4 -- "yes: level split" --> RQ
+ T4 -- "otherwise" --> T5
+ T5 -- "tie or no majority" --> RQ
+ RQ --> HR -- "ruling decides; stored with what<br/>was shown and who ruled" --> REC
+ LED --> CH -- "challenge, with reason" --> RQ
+ REC --> LED
