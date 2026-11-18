@@ -3,7 +3,10 @@
 
     python3 -I check.py --table
         every card id, reached on fixtures through the same engine the run uses; E1 is present_unreachable
-        (route is retrieval only: H_max = 0); exit 0 only when every row is PASS or present_unreachable
+        (route is retrieval only: H_max = 0); then one row per Scenario of goals/sp800-53-to-csf2-2/GOAL.md
+        (its "## Scenarios" section, read at run time and matched one to one against SCENARIOS below), each run
+        on fixtures through the goal's own suite, goals/sp800-53-to-csf2-2/tests/test_runner.py; exit 0 only when
+        every card row is PASS or present_unreachable and every scenario row is PASS
 
     python3 -I -B check.py --request REQUEST.json --output-dir OUTPUT
         the goal's black-box interface: {operation, transport: "fixture", payload}. Writes result.json,
@@ -179,11 +182,32 @@ SCENARIOS = [   # GOAL.md Scenarios, in order, each with the goal test that runs
 ]
 
 
+def goal_scenarios(root):
+    """The bullets of GOAL.md's '## Scenarios' section, in order; [] when the file is absent."""
+    path = os.path.join(root, "goals", "sp800-53-to-csf2-2", "GOAL.md")
+    if not os.path.isfile(path):
+        return []
+    out, inside = [], False
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("## "):
+                inside = line.strip() == "## Scenarios"
+                continue
+            if inside and line.startswith("- "):
+                out.append(line[2:].strip())
+    return out
+
+
 def scenario_table():
     """One row per Scenario in GOAL.md, run on fixtures through the goal's own suite (a subprocess from a copy outside the
-    checkout, GOAL_CANDIDATE set to this checkout), the way the goal gate runs it. Absent suite: every row 'not run'."""
+    checkout, GOAL_CANDIDATE set to this checkout), the way the goal gate runs it. SCENARIOS is checked against GOAL.md's
+    section one to one (same count, same order by the words each row keeps); a mismatch fails every row. Absent suite:
+    every row 'not run'."""
     import subprocess, tempfile, shutil
     root = os.path.abspath(os.path.join(HERE, "..", ".."))
+    listed = goal_scenarios(root)
+    if listed and len(listed) != len(SCENARIOS):
+        return {s: f"FAIL (GOAL.md lists {len(listed)} scenarios, this table {len(SCENARIOS)})" for s, _ in SCENARIOS}
     suite = os.path.join(root, "goals", "sp800-53-to-csf2-2", "tests", "test_runner.py")
     if not os.path.isfile(suite):
         return {s: "not run (goal suite absent)" for s, _ in SCENARIOS}

@@ -55,8 +55,8 @@
   },
   {
    "path": "check.py",
-   "sha256": "d6224aad3afe6853f6c1d4ee288eb6949ae86e8c7ec98114141cb98b619f8daa",
-   "bytes": 24309
+   "sha256": "54d1c0ad3e155f3cb61f479a1ada3ad7ca41e4dc818589d6dc0e8436afcca920",
+   "bytes": 25546
   },
   {
    "path": "config.frozen.json",
