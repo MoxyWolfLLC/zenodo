@@ -8,7 +8,8 @@ authors:
     affiliation: MoxyWolf LLC
     orcid: "https://orcid.org/0000-0002-5421-8457"
 version: 1.0.0
-date-released: 2026-11-17
+doi: 10.5281/zenodo.24353215
+date-released: 2026-11-18
 license: MIT
 repository-code: "https://github.com/MoxyWolfLLC/zenodo/tree/main/runners/sp800-53-to-csf2"
 keywords:

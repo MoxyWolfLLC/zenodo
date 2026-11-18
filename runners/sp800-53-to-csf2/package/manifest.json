@@ -1,7 +1,7 @@
 {
  "title": "Models Propose, Rules Decide: second-domain runner (SP 800-53 Rev. 5 to CSF 2.0)",
  "version": "1.0.0",
- "status": "unpublished",
+ "status": "deposited",
  "files": [
   {
    "path": ".gitignore",
@@ -9,9 +9,24 @@
    "bytes": 31
   },
   {
+   "path": ".zenodo.json",
+   "sha256": "0cdc4df814357a9d6d78bebec7b1ad0f7bed6059b5bd387be01f3f671e23cb9f",
+   "bytes": 2472
+  },
+  {
+   "path": "CITATION.cff",
+   "sha256": "735110f9f1ffecd83f3096e4c34df1c7ca7eb42943d6d589052e4af986f63f79",
+   "bytes": 633
+  },
+  {
+   "path": "LICENSE",
+   "sha256": "90075dd5f6d7e880f582d5b9febc6a28d465aefd5377d7d20a6587ef7f6e9380",
+   "bytes": 1088
+  },
+  {
    "path": "README.md",
-   "sha256": "d99ff68598064fb5753ea6a3b5dea0e2a67cce2843629c7d2a2353376e3f8b7c",
-   "bytes": 7180
+   "sha256": "1bc1cd7aa74929c02e5a0d2a8fe9fae5ed8219eb93c8bb0e93027b8cdb9673e7",
+   "bytes": 8195
   },
   {
    "path": "RESULT.md",
@@ -264,11 +279,6 @@
    "bytes": 1188
   },
   {
-   "path": "expected/check_output.txt",
-   "sha256": "dc6ab67bc28901d4f15ee6187a1618d06821ff507cb2ebec9b2a29e04b0902b3",
-   "bytes": 2690
-  },
-  {
    "path": "baseline/appendix_c.md",
    "sha256": "04eae5606ce5301650b313ca49c041d757d90dabc91ff22e965a1ce713c0c145",
    "bytes": 7300
@@ -294,16 +304,6 @@
    "bytes": 4098
   },
   {
-   "path": "graphs/policy.mmd",
-   "sha256": "0e5c3740a685ad877920de309d8dabbaf68926088bb8e5ed063d5c65eb6f01f7",
-   "bytes": 2851
-  },
-  {
-   "path": "graphs/run.mmd",
-   "sha256": "a3c42ac98bc51d3fe5a4e16617cdf25099ca9fe349d0285bd7e300b762141999",
-   "bytes": 4332
-  },
-  {
    "path": "data/csf2_core_cprt.json",
    "sha256": "de36759d2f3f70a0f28ab9a95505259e568467923295a13d510a068939773e5a",
    "bytes": 753380
@@ -317,7 +317,23 @@
    "path": "data/sp800-53r5_catalog.json",
    "sha256": "64ca6b4161de51ab6af098a7d101d326f14c95e1abf721396cd8a049e8115eeb",
    "bytes": 10448237
+  },
+  {
+   "path": "expected/check_output.txt",
+   "sha256": "dc6ab67bc28901d4f15ee6187a1618d06821ff507cb2ebec9b2a29e04b0902b3",
+   "bytes": 2690
+  },
+  {
+   "path": "graphs/policy.mmd",
+   "sha256": "0e5c3740a685ad877920de309d8dabbaf68926088bb8e5ed063d5c65eb6f01f7",
+   "bytes": 2851
+  },
+  {
+   "path": "graphs/run.mmd",
+   "sha256": "a3c42ac98bc51d3fe5a4e16617cdf25099ca9fe349d0285bd7e300b762141999",
+   "bytes": 4332
   }
  ],
- "note": "sha256 of every runner file at packaging time; RESULT.md is the deposit's summary; the deposit is made with /academic-deposit, never from here"
+ "note": "sha256 of every runner file at packaging time; RESULT.md is the deposit's summary; the deposit is made with /academic-deposit, never from here",
+ "doi": "10.5281/zenodo.24353215"
 }
