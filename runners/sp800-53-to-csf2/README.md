@@ -57,3 +57,9 @@ python3 -I undo.py --store <copy taken after r2 and before r3>   # item 8: both 
 8. **Weak labels for calibration.** The pinned NIST informative references, link versus no link only; an enhancement inherits its base control's links; absence is never a negative.
 9. **Index pins.** When the protocol was re-frozen for a council voice, `index.json` was re-pinned to the new hash with its vectors unchanged, so every stored retrieval stands.
 10. **The sets table.** Publication is the `active` flag on `run.sqlite` → `sets`; `run.py evaluate` records r1 (inactive) and publishes r2; `run.py policy` records r3 inactive.
+
+## Deposit
+
+Archived on Zenodo as its own record, version 1.0.0, under the MIT License (`LICENSE`). DOI: pending. `data/` is excluded from git (fetched by `fetch_sources.py` and pinned by `sources.json`) but included in the archive, so the archive runs without a fetch.
+
+What runs from the archive alone: the card table (`python3 -I check.py`: 26 cards PASS, E1 present_unreachable), `conform.py` (zero deviations), `tests_adapter.py`, `tests_run.py`, `tests_gold.py` and `tests_item8.py`. The 11 scenario rows of `check.py --table` read the goal suite from the repository root (`goals/sp800-53-to-csf2-2/tests/`), and `tests_cards.py` and `tests_conform.py` read the sibling runner and that suite, so from the archive alone the scenario rows print `not run (goal suite absent)`. From a fresh clone of the repository with `data/` in place, the output is deterministic: `python3 -I check.py --table | diff - expected/check_output.txt` prints nothing, and every `tests_*.py` ends OK.

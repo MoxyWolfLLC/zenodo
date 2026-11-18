@@ -1,0 +1,38 @@
+{
+  "upload_type": "software",
+  "title": "Second-domain runner for \"Models Propose, Rules Decide\": SP 800-53 Rev. 5 controls to CSF 2.0 subcategories",
+  "creators": [
+    {
+      "name": "Cougias, Dorian",
+      "affiliation": "MoxyWolf LLC",
+      "orcid": "0000-0002-5421-8457"
+    }
+  ],
+  "description": "<p>The second instantiation of the decision procedure specified in <em>Models Propose, Rules Decide</em>, run on real sources with live models: NIST SP 800-53 Rev. 5 controls as units, NIST CSF 2.0 subcategories as the hub, IR 8477's set-theory relationship types as the answer scale. A standard-library Python 3.13 runner with the paper's seven card lists verbatim, a provider adapter with a budget guard and per-call accounting, a frozen protocol (sample, splits, roles, budget), a calibration pass, an evaluation pass and a sealed-test pass under a published rule set, blind council gold with a double-ruled draw and an anchoring comparison, the single-source audits, per-level Wilson gates, a pre-declared policy change re-asking only what it lacks, replay of every live decision with the network disabled, both undo drills, and graph conformance against the paper's Appendix C (zero deviations). Every output the run produced is in the archive: the SQLite store, the accounting and event ledgers, the gold, audit and score files, and RESULT.md, which reads each measure back from the files and names the file beside each number. No acceptance gate opened; the missed-link estimate is withheld while any required council ruling is unresolved. Total spend 4.21 USD.</p><p>Offline checks: <code>python3 -I check.py</code>, <code>python3 -I conform.py</code> and the <code>tests_*.py</code> files; expected output in <code>expected/</code>. The pinned NIST sources are included under <code>data/</code> and re-fetchable with <code>fetch_sources.py</code>.</p>",
+  "license": "MIT",
+  "keywords": [
+    "crosswalk",
+    "SP 800-53",
+    "CSF 2.0",
+    "IR 8477",
+    "rule cards",
+    "LLM adjudication",
+    "decision provenance",
+    "replay",
+    "compliance mapping"
+  ],
+  "version": "1.0.0",
+  "language": "eng",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/MoxyWolfLLC/zenodo/tree/main/runners/sp800-53-to-csf2",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "10.5281/zenodo.23819763",
+      "relation": "isDerivedFrom",
+      "resource_type": "software"
+    }
+  ]
+}
