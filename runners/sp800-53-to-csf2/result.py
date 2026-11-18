@@ -96,7 +96,7 @@ def main(argv):
           + (f"; withheld because: {m['withheld']}" if m.get("withheld") else "") + f" (`{fn}` → `missed_links`).")
     w("\nThe estimate is withheld on both splits on Dorian's call (2026-11-17): the frozen weights come from the random draw and admit no non-response "
       "adjustment, so an unresolved ruling is a missing observation and the estimate is reported only when every required ruling is in. "
-      "Uncertainty: with the estimate withheld, no interval is reported; the counts above are the complete inputs.\n")
+      "Uncertainty: with the estimate withheld, no interval is reported; the counts above are the complete inputs (`score.json`, `score.test.json` → `missed_links`).\n")
     w("### Single-source error rates (SS-scope and SS-retrieval audit samples, per split)\n")
     w("| split | card | pool | drawn | resolved n | errors | error rate |\n|---|---|---|---|---|---|---|")
     for name, a, fn in (("evaluation", a_eval, "audit.evaluation.json"), ("sealed test", a_test, "audit.test.json")):
@@ -164,11 +164,11 @@ def main(argv):
     w("## Deviations declared\n")
     w("- Gemini is reached through OpenRouter (Google's direct API returned 402 on every call on 2026-11-17; Dorian's instruction), against the plan's \"only Mistral through OpenRouter\"; the seat is still the Google family (`protocol.json` → `routing_note`).")
     w("- The council's Google voice is gemini-2.5-flash-lite (so the OpenRouter worst case stays under its 20 USD cap) and its Mistral voice is mistral-large-2512: mistral-large-4-0 reasons before it answers, cannot be told not to, and returned empty content on 2,353 of 2,357 evaluation packets; the first gold assembly under it is retired and its rows stay in `run.sqlite` → `council_rulings` under that voice id.")
-    w("- The missed-link estimate is withheld while any required ruling is unresolved (Dorian, 2026-11-17: \"withhold the estimate\").")
-    w("- r3 is recorded as a set and left unpublished: the delta's scope is the sealed-test split and a published r3 would drop the evaluation split's public read.")
-    w("- The calibration revisions are not replayed: an incomplete extraction attempt is not stored (backlog: goal-sp800-53-to-csf2-2-follow-ups.md).")
-    w("- Item 1's merge has no release record (noted at the time); every later item has one.")
-    w("- The discover-command deviation declared at item 3 stands.\n")
+    w("- The missed-link estimate is withheld while any required ruling is unresolved (Dorian, 2026-11-17: \"withhold the estimate\"; `score.json`, `score.test.json` → `missed_links.withheld`).")
+    w("- r3 is recorded as a set and left unpublished (`run.sqlite` → `sets`; `set_r3.json`): the delta's scope is the sealed-test split and a published r3 would drop the evaluation split's public read.")
+    w("- The calibration revisions are not replayed: an incomplete extraction attempt is not stored (`replay_decisions.json` → `not_replayed`; backlog: goal-sp800-53-to-csf2-2-follow-ups.md).")
+    w("- The first item's merge has no release record (noted at the time; `peer-reviews/decisions` in the CKI workspace); every later item has one.")
+    w("- The discover-command deviation declared at the third item stands (its review record in `peer-reviews` in the CKI workspace).\n")
     w("## Measures with no producing item\n")
     w("- None of the Table 6 measures lacks a producing item. The HT estimate's interval is `not produced`: the estimate is withheld, so no interval is computed.\n")
     with open(os.path.join(HERE, "RESULT.md"), "w", encoding="utf-8") as f:
