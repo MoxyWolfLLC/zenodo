@@ -1,0 +1,45 @@
+{
+ "config_sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359",
+ "engine": "54dae60c336a1789",
+ "frozen": "2026-11-17T23:49:05Z",
+ "gates": {
+  "equal": "closed",
+  "intersects_with": "closed",
+  "no_match": "closed",
+  "subset_of": "closed",
+  "superset_of": "closed"
+ },
+ "params": {
+  "G_max": 2,
+  "H_max": 0,
+  "a_scope": 0.2,
+  "c_min": 0.7,
+  "closed": [
+   "equal",
+   "intersects_with",
+   "no_match",
+   "subset_of",
+   "superset_of"
+  ],
+  "k": 8,
+  "out_of_scope_types": [
+   "withdrawn"
+  ]
+ },
+ "proposer": "openai/gpt-6-luna",
+ "protocol_sha256": "c6fa1c26cc6bb4d76938082692e665d3cf8d61838ae8c3f87c5d326e33a49492",
+ "qv": {
+  "extract": "extract-v1",
+  "propose": "propose-v1",
+  "triad": "vote-v1"
+ },
+ "revision": "r2",
+ "sha256": "eb4bb7f724b8dc0fee78894343a16832b7b6b648f86716561c2f4bb5df6c3739",
+ "split": "evaluation",
+ "triad": [
+  "anthropic/claude-haiku-5.5",
+  "google/gemini-2.5-flash-lite",
+  "mistralai/mistral-small-2603"
+ ],
+ "units": 160
+}

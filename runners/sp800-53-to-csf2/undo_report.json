@@ -1,0 +1,48 @@
+{
+ "data_recovery": {
+  "footprint": [
+   "002f3b843f16bbdd",
+   "00365a921fedc59d",
+   "0038d9c1b1e3b805",
+   "007796ad8c9664d9",
+   "007fbebf8bea934f"
+  ],
+  "footprint_is_exactly_the_targets": true,
+  "ok": true,
+  "restored_rows": 5,
+  "rows": 6482,
+  "table_equal_after_restore": true,
+  "targets": [
+   "002f3b843f16bbdd",
+   "00365a921fedc59d",
+   "0038d9c1b1e3b805",
+   "007796ad8c9664d9",
+   "007fbebf8bea934f"
+  ],
+  "untargeted_rows_changed": 0
+ },
+ "ok": true,
+ "publication_reversal": {
+  "note": "r1 carries no decisions in this run (calibration ran under cal-1..cal-6, the evaluation and test splits under r2): the complete read under r1 is empty before and after",
+  "ok": true,
+  "r1_read": {
+   "rows": 0,
+   "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "r1_read_after_reactivation": {
+   "rows": 0,
+   "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "r2_differs": true,
+  "r2_read": {
+   "rows": 2114,
+   "sha256": "98211da2d5c222745421a08b66688257c0f5b57ccbbbc71a1491457569f9eb2d"
+  },
+  "reads_equal": true,
+  "sets_before": {
+   "r1": 0,
+   "r2": 1
+  }
+ },
+ "store": "run-after-r2.sqlite"
+}

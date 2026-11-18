@@ -1,0 +1,3210 @@
+{
+  "adjudication": {
+    "agreement": "Krippendorff's alpha on the double-ruled subset",
+    "assisted_packet": "the primary packet plus the run's proposal, votes and confidence; never primary gold",
+    "council_voices": [
+      "anthropic/claude-haiku-5.5",
+      "google/gemini-2.5-flash-lite",
+      "mistralai/mistral-large-2512"
+    ],
+    "double_ruled_from": "primary packets only",
+    "double_ruled_share": 0.2,
+    "primary_packet": "blind: unit text, unit context (family and base control title), candidate subcategory text, rubric",
+    "ruling": "majority of three voices on the level; a three-way split is ruled no_relationship with reason split"
+  },
+  "anchoring_comparison": {
+    "design": "matched pairs, the same primary packet ruled blind and, in a separate session, assisted",
+    "pairs_per_split": 30,
+    "selection": "selection_rules.assisted_pairs",
+    "statistic": "difference in the share of rulings that agree with the run's proposal, blind minus assisted, with a 95% Wilson interval on the discordant pairs"
+  },
+  "budget": {
+    "by_provider_usd": {
+      "anthropic": 4.67,
+      "openai": 3.31,
+      "openrouter": 16.59
+    },
+    "cap_usd": 60.0,
+    "k": 8,
+    "lines": [
+      {
+        "basis": "one per sampled unit",
+        "calls": 357,
+        "model": "openai/gpt-6-luna",
+        "provider": "openai",
+        "stage": "extraction",
+        "tokens_in_ceiling": 2500,
+        "tokens_out_ceiling": 400,
+        "usd": 0.1606
+      },
+      {
+        "basis": "one per sampled unit",
+        "calls": 357,
+        "model": "openai/text-embedding-3-small",
+        "provider": "openai",
+        "stage": "query_embedding",
+        "tokens_in_ceiling": 2000,
+        "tokens_out_ceiling": 0,
+        "usd": 0.0143
+      },
+      {
+        "basis": "active subcategories, sources.json counts.csf2.subcategories",
+        "calls": 106,
+        "model": "openai/text-embedding-3-small",
+        "provider": "openai",
+        "stage": "hub_embedding",
+        "tokens_in_ceiling": 2000,
+        "tokens_out_ceiling": 0,
+        "usd": 0.0042
+      },
+      {
+        "basis": "sample x k",
+        "calls": 2856,
+        "model": "openai/gpt-6-luna",
+        "provider": "openai",
+        "stage": "proposal",
+        "tokens_in_ceiling": 3000,
+        "tokens_out_ceiling": 200,
+        "usd": 1.1424
+      },
+      {
+        "basis": "sample x k, one per voter",
+        "calls": 2856,
+        "model": "anthropic/claude-haiku-5.5",
+        "provider": "anthropic",
+        "stage": "vote",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 1.0139
+      },
+      {
+        "basis": "sample x k, one per voter",
+        "calls": 2856,
+        "model": "google/gemini-2.5-flash-lite",
+        "provider": "openrouter",
+        "stage": "vote",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 0.971
+      },
+      {
+        "basis": "sample x k, one per voter",
+        "calls": 2856,
+        "model": "mistralai/mistral-small-2603",
+        "provider": "openrouter",
+        "stage": "vote",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 1.4566
+      },
+      {
+        "basis": "six-revision cap x calibration units",
+        "calls": 546,
+        "model": "openai/gpt-6-luna",
+        "provider": "openai",
+        "stage": "calibration_extraction",
+        "tokens_in_ceiling": 2500,
+        "tokens_out_ceiling": 400,
+        "usd": 0.2457
+      },
+      {
+        "basis": "six-revision cap x calibration units x k",
+        "calls": 4368,
+        "model": "openai/gpt-6-luna",
+        "provider": "openai",
+        "stage": "calibration_proposal",
+        "tokens_in_ceiling": 3000,
+        "tokens_out_ceiling": 200,
+        "usd": 1.7472
+      },
+      {
+        "basis": "six-revision cap x calibration units x k, one per voter",
+        "calls": 4368,
+        "model": "anthropic/claude-haiku-5.5",
+        "provider": "anthropic",
+        "stage": "calibration_vote",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 1.5506
+      },
+      {
+        "basis": "six-revision cap x calibration units x k, one per voter",
+        "calls": 4368,
+        "model": "google/gemini-2.5-flash-lite",
+        "provider": "openrouter",
+        "stage": "calibration_vote",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 1.4851
+      },
+      {
+        "basis": "six-revision cap x calibration units x k, one per voter",
+        "calls": 4368,
+        "model": "mistralai/mistral-small-2603",
+        "provider": "openrouter",
+        "stage": "calibration_vote",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 2.2277
+      },
+      {
+        "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
+        "calls": 2426,
+        "model": "anthropic/claude-haiku-5.5",
+        "provider": "anthropic",
+        "stage": "council_evaluation",
+        "tokens_in_ceiling": 3200,
+        "tokens_out_ceiling": 250,
+        "usd": 1.0796
+      },
+      {
+        "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
+        "calls": 2426,
+        "model": "google/gemini-2.5-flash-lite",
+        "provider": "openrouter",
+        "stage": "council_evaluation",
+        "tokens_in_ceiling": 3200,
+        "tokens_out_ceiling": 250,
+        "usd": 1.0189
+      },
+      {
+        "basis": "evaluation split: primary_and_census 1280, double_ruled 256, missed_link_draw 800, ss_audit 60, assisted_pairs 30; one call per packet per voice",
+        "calls": 2426,
+        "model": "mistralai/mistral-large-2512",
+        "provider": "openrouter",
+        "stage": "council_evaluation",
+        "tokens_in_ceiling": 3200,
+        "tokens_out_ceiling": 250,
+        "usd": 4.7914
+      },
+      {
+        "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
+        "calls": 1638,
+        "model": "anthropic/claude-haiku-5.5",
+        "provider": "anthropic",
+        "stage": "council_test",
+        "tokens_in_ceiling": 3200,
+        "tokens_out_ceiling": 250,
+        "usd": 0.7289
+      },
+      {
+        "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
+        "calls": 1638,
+        "model": "google/gemini-2.5-flash-lite",
+        "provider": "openrouter",
+        "stage": "council_test",
+        "tokens_in_ceiling": 3200,
+        "tokens_out_ceiling": 250,
+        "usd": 0.688
+      },
+      {
+        "basis": "test split: primary_and_census 848, double_ruled 170, missed_link_draw 530, ss_audit 60, assisted_pairs 30; one call per packet per voice",
+        "calls": 1638,
+        "model": "mistralai/mistral-large-2512",
+        "provider": "openrouter",
+        "stage": "council_test",
+        "tokens_in_ceiling": 3200,
+        "tokens_out_ceiling": 250,
+        "usd": 3.2351
+      },
+      {
+        "basis": "sealed-test votes re-asked, worst case every one, one per voter",
+        "calls": 848,
+        "model": "anthropic/claude-haiku-5.5",
+        "provider": "anthropic",
+        "stage": "r3_allowance",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 0.301
+      },
+      {
+        "basis": "sealed-test votes re-asked, worst case every one, one per voter",
+        "calls": 848,
+        "model": "google/gemini-2.5-flash-lite",
+        "provider": "openrouter",
+        "stage": "r3_allowance",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 0.2883
+      },
+      {
+        "basis": "sealed-test votes re-asked, worst case every one, one per voter",
+        "calls": 848,
+        "model": "mistralai/mistral-small-2603",
+        "provider": "openrouter",
+        "stage": "r3_allowance",
+        "tokens_in_ceiling": 2800,
+        "tokens_out_ceiling": 150,
+        "usd": 0.4325
+      }
+    ],
+    "price_source": "https://openrouter.ai/api/v1/models retrieved 2026-11-16, re-read 2026-11-17; usd per 1e6 tokens",
+    "prices": {
+      "anthropic/claude-haiku-5.5": {
+        "family": "anthropic",
+        "in": 0.1,
+        "out": 0.5,
+        "provider": "anthropic"
+      },
+      "google/gemini-2.5-flash-lite": {
+        "family": "google",
+        "in": 0.1,
+        "out": 0.4,
+        "provider": "openrouter"
+      },
+      "mistralai/mistral-large-2512": {
+        "family": "mistralai",
+        "in": 0.5,
+        "out": 1.5,
+        "provider": "openrouter"
+      },
+      "mistralai/mistral-small-2603": {
+        "family": "mistralai",
+        "in": 0.15,
+        "out": 0.6,
+        "provider": "openrouter"
+      },
+      "openai/gpt-6-luna": {
+        "family": "openai",
+        "in": 0.1,
+        "out": 0.5,
+        "provider": "openai"
+      },
+      "openai/text-embedding-3-small": {
+        "family": "openai",
+        "in": 0.02,
+        "out": 0.0,
+        "provider": "openai",
+        "source": "https://openai.com/api/pricing/ 2026-11-16"
+      }
+    },
+    "provider_caps": {
+      "anthropic": 12.0,
+      "google": 8.0,
+      "openai": 20.0,
+      "openrouter": 20.0
+    },
+    "provider_caps_source": "GOAL.md, Provider budgets",
+    "r": 5,
+    "reserve_rule": "inside the cap; released only in the deliverables phase",
+    "reserve_usd": 10.0,
+    "total_usd": 24.58,
+    "total_with_reserve_usd": 34.58,
+    "voices": 3
+  },
+  "calibration": {
+    "labels": "pinned NIST informative references for the calibration split, link versus no link only",
+    "revisions_cap": 6,
+    "tunes": [
+      "prompt wording",
+      "confidence threshold"
+    ]
+  },
+  "double_ruled": {
+    "from": "primary packets",
+    "selection": "selection_rules.double_ruled",
+    "share": 0.2,
+    "statistic": "Krippendorff's alpha"
+  },
+  "goal": "sp800-53-to-csf2-2",
+  "hub": "106 active CSF 2.0 subcategories at hub revision 1",
+  "levels": [
+    "subset_of",
+    "intersects_with",
+    "equal",
+    "superset_of"
+  ],
+  "missed_link_estimand": {
+    "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links",
+    "non_retrieved_stratum": {
+      "draws_per_unit": 5,
+      "inclusion_probability": 0.05102040816326531,
+      "note": "the same r for every unit; weight is the inverse inclusion probability",
+      "pool_per_unit": 98,
+      "selection": "selection_rules.missed_link",
+      "weight": 19.6
+    },
+    "retrieved_stratum": {
+      "source": "every retrieved candidate the run voted no_relationship, ruled by the council",
+      "weight": 1
+    }
+  },
+  "null": "no_relationship",
+  "r3": {
+    "formula": "threshold_r2 - 0.2 floored at 0; if that leaves the value unchanged, threshold_r2 + 0.2 capped at 1",
+    "numeric_value": "recorded in config.frozen.json after calibration, never here",
+    "scope": "sealed-test split only; its vote identities change, so exactly its vote calls are re-asked; rulings naming a re-asked vote are re-derived at no model cost and counted separately"
+  },
+  "roles": {
+    "council": {
+      "in": 3200,
+      "models": [
+        "anthropic/claude-haiku-5.5",
+        "google/gemini-2.5-flash-lite",
+        "mistralai/mistral-large-2512"
+      ],
+      "out": 250
+    },
+    "embedding": {
+      "in": 2000,
+      "model": "openai/text-embedding-3-small",
+      "out": 0
+    },
+    "extraction": {
+      "in": 2500,
+      "model": "openai/gpt-6-luna",
+      "out": 400
+    },
+    "proposal": {
+      "in": 3000,
+      "model": "openai/gpt-6-luna",
+      "out": 200
+    },
+    "vote": {
+      "in": 2800,
+      "models": [
+        "anthropic/claude-haiku-5.5",
+        "google/gemini-2.5-flash-lite",
+        "mistralai/mistral-small-2603"
+      ],
+      "out": 150
+    }
+  },
+  "routing_note": "Gemini is reached through OpenRouter (Google's direct API unavailable 2026-11-17; Dorian's instruction); the council's Google voice is gemini-2.5-flash-lite so the OpenRouter worst case stays under its $20 cap. Deviation from PLAN.md item 0 (only Mistral through OpenRouter); seats are still three model families. The council's Mistral voice is mistral-large-2512, not mistral-large-4-0: Large 4 reasons before it answers, cannot be told not to, and spent the whole 250-token council ceiling on reasoning on every evaluation packet (2,353 of 2,357 replies empty).",
+  "rubric": "Unit: one active SP 800-53 Rev. 5 control or control enhancement (statement text). Hub entry: one active\nCSF 2.0 subcategory (identifier and text). Rule on the set of required activities each describes, following\nNIST IR 8477's set-theory relationship types:\n  subset_of        every activity the unit requires is required by the subcategory, and the subcategory requires more\n  superset_of      every activity the subcategory requires is required by the unit, and the unit requires more\n  equal            the two require the same activities\n  intersects_with  some required activities are shared, each side also requires activities the other does not\n  no_relationship  no required activity is shared\nRule from the two texts alone. A packet shows source text, context, candidate and this rubric, never a proposal,\nvote, confidence, route or prediction. When the texts do not settle the level, rule no_relationship and say why.",
+  "sample": {
+    "families": 104,
+    "population_families": 300,
+    "population_units": 1014,
+    "range": [
+      300,
+      400
+    ],
+    "size": 357,
+    "strata": {
+      "ac": {
+        "base": {
+          "p": 0.34782608695652173,
+          "population": 23,
+          "selected": 8
+        },
+        "enhancement": {
+          "p": 0.3425925925925926,
+          "population": 108,
+          "selected": 37
+        }
+      },
+      "at": {
+        "base": {
+          "p": 0.4,
+          "population": 5,
+          "selected": 2
+        },
+        "enhancement": {
+          "p": 1.0,
+          "population": 10,
+          "selected": 10
+        }
+      },
+      "au": {
+        "base": {
+          "p": 0.3333333333333333,
+          "population": 15,
+          "selected": 5
+        },
+        "enhancement": {
+          "p": 0.4878048780487805,
+          "population": 41,
+          "selected": 20
+        }
+      },
+      "ca": {
+        "base": {
+          "p": 0.375,
+          "population": 8,
+          "selected": 3
+        },
+        "enhancement": {
+          "p": 0.47058823529411764,
+          "population": 17,
+          "selected": 8
+        }
+      },
+      "cm": {
+        "base": {
+          "p": 0.35714285714285715,
+          "population": 14,
+          "selected": 5
+        },
+        "enhancement": {
+          "p": 0.3333333333333333,
+          "population": 42,
+          "selected": 14
+        }
+      },
+      "cp": {
+        "base": {
+          "p": 0.3333333333333333,
+          "population": 12,
+          "selected": 4
+        },
+        "enhancement": {
+          "p": 0.05405405405405406,
+          "population": 37,
+          "selected": 2
+        }
+      },
+      "ia": {
+        "base": {
+          "p": 0.3076923076923077,
+          "population": 13,
+          "selected": 4
+        },
+        "enhancement": {
+          "p": 0.3695652173913043,
+          "population": 46,
+          "selected": 17
+        }
+      },
+      "ir": {
+        "base": {
+          "p": 0.3333333333333333,
+          "population": 9,
+          "selected": 3
+        },
+        "enhancement": {
+          "p": 0.22580645161290322,
+          "population": 31,
+          "selected": 7
+        }
+      },
+      "ma": {
+        "base": {
+          "p": 0.2857142857142857,
+          "population": 7,
+          "selected": 2
+        },
+        "enhancement": {
+          "p": 0.5238095238095238,
+          "population": 21,
+          "selected": 11
+        }
+      },
+      "mp": {
+        "base": {
+          "p": 0.375,
+          "population": 8,
+          "selected": 3
+        },
+        "enhancement": {
+          "p": 0.4166666666666667,
+          "population": 12,
+          "selected": 5
+        }
+      },
+      "pe": {
+        "base": {
+          "p": 0.36363636363636365,
+          "population": 22,
+          "selected": 8
+        },
+        "enhancement": {
+          "p": 0.13793103448275862,
+          "population": 29,
+          "selected": 4
+        }
+      },
+      "pl": {
+        "base": {
+          "p": 0.375,
+          "population": 8,
+          "selected": 3
+        },
+        "enhancement": {
+          "p": 0.0,
+          "population": 3,
+          "selected": 0
+        }
+      },
+      "pm": {
+        "base": {
+          "p": 0.34375,
+          "population": 32,
+          "selected": 11
+        },
+        "enhancement": {
+          "p": 0.6,
+          "population": 5,
+          "selected": 3
+        }
+      },
+      "ps": {
+        "base": {
+          "p": 0.3333333333333333,
+          "population": 9,
+          "selected": 3
+        },
+        "enhancement": {
+          "p": 0.25,
+          "population": 8,
+          "selected": 2
+        }
+      },
+      "pt": {
+        "base": {
+          "p": 0.375,
+          "population": 8,
+          "selected": 3
+        },
+        "enhancement": {
+          "p": 0.38461538461538464,
+          "population": 13,
+          "selected": 5
+        }
+      },
+      "ra": {
+        "base": {
+          "p": 0.3333333333333333,
+          "population": 9,
+          "selected": 3
+        },
+        "enhancement": {
+          "p": 0.07692307692307693,
+          "population": 13,
+          "selected": 1
+        }
+      },
+      "sa": {
+        "base": {
+          "p": 0.35294117647058826,
+          "population": 17,
+          "selected": 6
+        },
+        "enhancement": {
+          "p": 0.5824175824175825,
+          "population": 91,
+          "selected": 53
+        }
+      },
+      "sc": {
+        "base": {
+          "p": 0.3404255319148936,
+          "population": 47,
+          "selected": 16
+        },
+        "enhancement": {
+          "p": 0.33695652173913043,
+          "population": 92,
+          "selected": 31
+        }
+      },
+      "si": {
+        "base": {
+          "p": 0.36363636363636365,
+          "population": 22,
+          "selected": 8
+        },
+        "enhancement": {
+          "p": 0.2875,
+          "population": 80,
+          "selected": 23
+        }
+      },
+      "sr": {
+        "base": {
+          "p": 0.3333333333333333,
+          "population": 12,
+          "selected": 4
+        },
+        "enhancement": {
+          "p": 0.0,
+          "population": 15,
+          "selected": 0
+        }
+      }
+    },
+    "units": [
+      {
+        "family": "ac-18",
+        "group": "ac",
+        "id": "ac-18",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "ac-18",
+        "group": "ac",
+        "id": "ac-18.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ac-18",
+        "group": "ac",
+        "id": "ac-18.3",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ac-18",
+        "group": "ac",
+        "id": "ac-18.4",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ac-18",
+        "group": "ac",
+        "id": "ac-18.5",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "at-2",
+        "group": "at",
+        "id": "at-2",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "at-2",
+        "group": "at",
+        "id": "at-2.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "at-2",
+        "group": "at",
+        "id": "at-2.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "at-2",
+        "group": "at",
+        "id": "at-2.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "at-2",
+        "group": "at",
+        "id": "at-2.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "at-2",
+        "group": "at",
+        "id": "at-2.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "at-2",
+        "group": "at",
+        "id": "at-2.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-9",
+        "group": "au",
+        "id": "au-9.7",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ca-2",
+        "group": "ca",
+        "id": "ca-2",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ca-2",
+        "group": "ca",
+        "id": "ca-2.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ca-2",
+        "group": "ca",
+        "id": "ca-2.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ca-2",
+        "group": "ca",
+        "id": "ca-2.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.6",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.7",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.8",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-8",
+        "group": "cm",
+        "id": "cm-8.9",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cp-12",
+        "group": "cp",
+        "id": "cp-12",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "ia-4",
+        "group": "ia",
+        "id": "ia-4",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ia-4",
+        "group": "ia",
+        "id": "ia-4.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-4",
+        "group": "ia",
+        "id": "ia-4.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-4",
+        "group": "ia",
+        "id": "ia-4.5",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-4",
+        "group": "ia",
+        "id": "ia-4.6",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-4",
+        "group": "ia",
+        "id": "ia-4.8",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-4",
+        "group": "ia",
+        "id": "ia-4.9",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ir-8",
+        "group": "ir",
+        "id": "ir-8",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "ir-8",
+        "group": "ir",
+        "id": "ir-8.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ma-5",
+        "group": "ma",
+        "id": "ma-5",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ma-5",
+        "group": "ma",
+        "id": "ma-5.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ma-5",
+        "group": "ma",
+        "id": "ma-5.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ma-5",
+        "group": "ma",
+        "id": "ma-5.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ma-5",
+        "group": "ma",
+        "id": "ma-5.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ma-5",
+        "group": "ma",
+        "id": "ma-5.5",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "mp-8",
+        "group": "mp",
+        "id": "mp-8",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "mp-8",
+        "group": "mp",
+        "id": "mp-8.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "mp-8",
+        "group": "mp",
+        "id": "mp-8.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "mp-8",
+        "group": "mp",
+        "id": "mp-8.3",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "mp-8",
+        "group": "mp",
+        "id": "mp-8.4",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "pe-22",
+        "group": "pe",
+        "id": "pe-22",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pl-7",
+        "group": "pl",
+        "id": "pl-7",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "pm-30",
+        "group": "pm",
+        "id": "pm-30",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "pm-30",
+        "group": "pm",
+        "id": "pm-30.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ps-1",
+        "group": "ps",
+        "id": "ps-1",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "pt-3",
+        "group": "pt",
+        "id": "pt-3",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "pt-3",
+        "group": "pt",
+        "id": "pt-3.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "pt-3",
+        "group": "pt",
+        "id": "pt-3.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ra-6",
+        "group": "ra",
+        "id": "ra-6",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.7",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.8",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.9",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.10",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.11",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-4",
+        "group": "sa",
+        "id": "sa-4.12",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-30",
+        "group": "sc",
+        "id": "sc-30",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-30",
+        "group": "sc",
+        "id": "sc-30.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-30",
+        "group": "sc",
+        "id": "sc-30.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-30",
+        "group": "sc",
+        "id": "sc-30.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-30",
+        "group": "sc",
+        "id": "sc-30.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-8",
+        "group": "si",
+        "id": "si-8",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "si-8",
+        "group": "si",
+        "id": "si-8.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "si-8",
+        "group": "si",
+        "id": "si-8.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "sr-8",
+        "group": "sr",
+        "id": "sr-8",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ac-7",
+        "group": "ac",
+        "id": "ac-7",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ac-7",
+        "group": "ac",
+        "id": "ac-7.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-7",
+        "group": "ac",
+        "id": "ac-7.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-7",
+        "group": "ac",
+        "id": "ac-7.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "at-3",
+        "group": "at",
+        "id": "at-3",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "at-3",
+        "group": "at",
+        "id": "at-3.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "at-3",
+        "group": "at",
+        "id": "at-3.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "at-3",
+        "group": "at",
+        "id": "at-3.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "at-3",
+        "group": "at",
+        "id": "at-3.5",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "au-10",
+        "group": "au",
+        "id": "au-10",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "au-10",
+        "group": "au",
+        "id": "au-10.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "au-10",
+        "group": "au",
+        "id": "au-10.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "au-10",
+        "group": "au",
+        "id": "au-10.3",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "au-10",
+        "group": "au",
+        "id": "au-10.4",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ca-7",
+        "group": "ca",
+        "id": "ca-7",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ca-7",
+        "group": "ca",
+        "id": "ca-7.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ca-7",
+        "group": "ca",
+        "id": "ca-7.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ca-7",
+        "group": "ca",
+        "id": "ca-7.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ca-7",
+        "group": "ca",
+        "id": "ca-7.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ca-7",
+        "group": "ca",
+        "id": "ca-7.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "cm-13",
+        "group": "cm",
+        "id": "cm-13",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "cp-3",
+        "group": "cp",
+        "id": "cp-3",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "cp-3",
+        "group": "cp",
+        "id": "cp-3.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "cp-3",
+        "group": "cp",
+        "id": "cp-3.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ia-12",
+        "group": "ia",
+        "id": "ia-12",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ia-12",
+        "group": "ia",
+        "id": "ia-12.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-12",
+        "group": "ia",
+        "id": "ia-12.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-12",
+        "group": "ia",
+        "id": "ia-12.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-12",
+        "group": "ia",
+        "id": "ia-12.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-12",
+        "group": "ia",
+        "id": "ia-12.5",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ia-12",
+        "group": "ia",
+        "id": "ia-12.6",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ir-3",
+        "group": "ir",
+        "id": "ir-3",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ir-3",
+        "group": "ir",
+        "id": "ir-3.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ir-3",
+        "group": "ir",
+        "id": "ir-3.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ir-3",
+        "group": "ir",
+        "id": "ir-3.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ma-3",
+        "group": "ma",
+        "id": "ma-3",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ma-3",
+        "group": "ma",
+        "id": "ma-3.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ma-3",
+        "group": "ma",
+        "id": "ma-3.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ma-3",
+        "group": "ma",
+        "id": "ma-3.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ma-3",
+        "group": "ma",
+        "id": "ma-3.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ma-3",
+        "group": "ma",
+        "id": "ma-3.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ma-3",
+        "group": "ma",
+        "id": "ma-3.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "mp-3",
+        "group": "mp",
+        "id": "mp-3",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pe-23",
+        "group": "pe",
+        "id": "pe-23",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "pl-1",
+        "group": "pl",
+        "id": "pl-1",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pm-20",
+        "group": "pm",
+        "id": "pm-20",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pm-20",
+        "group": "pm",
+        "id": "pm-20.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ps-7",
+        "group": "ps",
+        "id": "ps-7",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "pt-4",
+        "group": "pt",
+        "id": "pt-4",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pt-4",
+        "group": "pt",
+        "id": "pt-4.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "pt-4",
+        "group": "pt",
+        "id": "pt-4.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "pt-4",
+        "group": "pt",
+        "id": "pt-4.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ra-2",
+        "group": "ra",
+        "id": "ra-2",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ra-2",
+        "group": "ra",
+        "id": "ra-2.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.7",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.8",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-11",
+        "group": "sa",
+        "id": "sa-11.9",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-3",
+        "group": "sc",
+        "id": "sc-3",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-3",
+        "group": "sc",
+        "id": "sc-3.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-3",
+        "group": "sc",
+        "id": "sc-3.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-3",
+        "group": "sc",
+        "id": "sc-3.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-3",
+        "group": "sc",
+        "id": "sc-3.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-3",
+        "group": "sc",
+        "id": "sc-3.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-11",
+        "group": "si",
+        "id": "si-11",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sr-12",
+        "group": "sr",
+        "id": "sr-12",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ac-20",
+        "group": "ac",
+        "id": "ac-20",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ac-20",
+        "group": "ac",
+        "id": "ac-20.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-20",
+        "group": "ac",
+        "id": "ac-20.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-20",
+        "group": "ac",
+        "id": "ac-20.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-20",
+        "group": "ac",
+        "id": "ac-20.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-20",
+        "group": "ac",
+        "id": "ac-20.5",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "au-16",
+        "group": "au",
+        "id": "au-16",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "au-16",
+        "group": "au",
+        "id": "au-16.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "au-16",
+        "group": "au",
+        "id": "au-16.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "au-16",
+        "group": "au",
+        "id": "au-16.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ca-1",
+        "group": "ca",
+        "id": "ca-1",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "cm-14",
+        "group": "cm",
+        "id": "cm-14",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "cp-11",
+        "group": "cp",
+        "id": "cp-11",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ia-8",
+        "group": "ia",
+        "id": "ia-8",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "ia-8",
+        "group": "ia",
+        "id": "ia-8.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ia-8",
+        "group": "ia",
+        "id": "ia-8.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ia-8",
+        "group": "ia",
+        "id": "ia-8.4",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ia-8",
+        "group": "ia",
+        "id": "ia-8.5",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ia-8",
+        "group": "ia",
+        "id": "ia-8.6",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ir-9",
+        "group": "ir",
+        "id": "ir-9",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ir-9",
+        "group": "ir",
+        "id": "ir-9.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ir-9",
+        "group": "ir",
+        "id": "ir-9.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ir-9",
+        "group": "ir",
+        "id": "ir-9.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "mp-5",
+        "group": "mp",
+        "id": "mp-5",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "mp-5",
+        "group": "mp",
+        "id": "mp-5.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "pe-20",
+        "group": "pe",
+        "id": "pe-20",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "pl-11",
+        "group": "pl",
+        "id": "pl-11",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "pm-1",
+        "group": "pm",
+        "id": "pm-1",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ps-4",
+        "group": "ps",
+        "id": "ps-4",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ps-4",
+        "group": "ps",
+        "id": "ps-4.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ps-4",
+        "group": "ps",
+        "id": "ps-4.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "pt-1",
+        "group": "pt",
+        "id": "pt-1",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ra-7",
+        "group": "ra",
+        "id": "ra-7",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.3",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.4",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.5",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.6",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.7",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.8",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.9",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.10",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.11",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.12",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.13",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.14",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.15",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.16",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.17",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.18",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.19",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.20",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.21",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.22",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.23",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.24",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.25",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.26",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.27",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.28",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.29",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.30",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.31",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.32",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-8",
+        "group": "sa",
+        "id": "sa-8.33",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sc-36",
+        "group": "sc",
+        "id": "sc-36",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-36",
+        "group": "sc",
+        "id": "sc-36.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-36",
+        "group": "sc",
+        "id": "sc-36.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-18",
+        "group": "si",
+        "id": "si-18",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-18",
+        "group": "si",
+        "id": "si-18.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-18",
+        "group": "si",
+        "id": "si-18.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-18",
+        "group": "si",
+        "id": "si-18.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-18",
+        "group": "si",
+        "id": "si-18.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-18",
+        "group": "si",
+        "id": "si-18.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sr-7",
+        "group": "sr",
+        "id": "sr-7",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.7",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.8",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.9",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.10",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.11",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.12",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.13",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.14",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-3",
+        "group": "ac",
+        "id": "ac-3.15",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-4",
+        "group": "au",
+        "id": "au-4",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "au-4",
+        "group": "au",
+        "id": "au-4.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-4",
+        "group": "cm",
+        "id": "cm-4",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "cm-4",
+        "group": "cm",
+        "id": "cm-4.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cm-4",
+        "group": "cm",
+        "id": "cm-4.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "cp-1",
+        "group": "cp",
+        "id": "cp-1",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ia-11",
+        "group": "ia",
+        "id": "ia-11",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pe-17",
+        "group": "pe",
+        "id": "pe-17",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "pm-13",
+        "group": "pm",
+        "id": "pm-13",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "sa-20",
+        "group": "sa",
+        "id": "sa-20",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-45",
+        "group": "sc",
+        "id": "sc-45",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-45",
+        "group": "sc",
+        "id": "sc-45.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "sc-45",
+        "group": "sc",
+        "id": "sc-45.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "si-14",
+        "group": "si",
+        "id": "si-14",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "si-14",
+        "group": "si",
+        "id": "si-14.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "si-14",
+        "group": "si",
+        "id": "si-14.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "si-14",
+        "group": "si",
+        "id": "si-14.3",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sr-1",
+        "group": "sr",
+        "id": "sr-1",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "ac-21",
+        "group": "ac",
+        "id": "ac-21",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-21",
+        "group": "ac",
+        "id": "ac-21.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-21",
+        "group": "ac",
+        "id": "ac-21.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-5",
+        "group": "au",
+        "id": "au-5",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-5",
+        "group": "au",
+        "id": "au-5.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-5",
+        "group": "au",
+        "id": "au-5.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-5",
+        "group": "au",
+        "id": "au-5.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-5",
+        "group": "au",
+        "id": "au-5.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "au-5",
+        "group": "au",
+        "id": "au-5.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "cm-2",
+        "group": "cm",
+        "id": "cm-2",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "cm-2",
+        "group": "cm",
+        "id": "cm-2.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "cm-2",
+        "group": "cm",
+        "id": "cm-2.3",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "cm-2",
+        "group": "cm",
+        "id": "cm-2.6",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "cm-2",
+        "group": "cm",
+        "id": "cm-2.7",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "pe-21",
+        "group": "pe",
+        "id": "pe-21",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "pm-5",
+        "group": "pm",
+        "id": "pm-5",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pm-5",
+        "group": "pm",
+        "id": "pm-5.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-23",
+        "group": "sa",
+        "id": "sa-23",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-47",
+        "group": "sc",
+        "id": "sc-47",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "si-2",
+        "group": "si",
+        "id": "si-2",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-2",
+        "group": "si",
+        "id": "si-2.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-2",
+        "group": "si",
+        "id": "si-2.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-2",
+        "group": "si",
+        "id": "si-2.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-2",
+        "group": "si",
+        "id": "si-2.5",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-2",
+        "group": "si",
+        "id": "si-2.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-2",
+        "group": "si",
+        "id": "si-2.7",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-12",
+        "group": "ac",
+        "id": "ac-12",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "ac-12",
+        "group": "ac",
+        "id": "ac-12.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-12",
+        "group": "ac",
+        "id": "ac-12.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-12",
+        "group": "ac",
+        "id": "ac-12.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "pe-13",
+        "group": "pe",
+        "id": "pe-13",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "pe-13",
+        "group": "pe",
+        "id": "pe-13.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "pe-13",
+        "group": "pe",
+        "id": "pe-13.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "pe-13",
+        "group": "pe",
+        "id": "pe-13.4",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "pm-14",
+        "group": "pm",
+        "id": "pm-14",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sa-5",
+        "group": "sa",
+        "id": "sa-5",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-23",
+        "group": "sc",
+        "id": "sc-23",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-23",
+        "group": "sc",
+        "id": "sc-23.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "sc-23",
+        "group": "sc",
+        "id": "sc-23.3",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "sc-23",
+        "group": "sc",
+        "id": "sc-23.5",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "si-5",
+        "group": "si",
+        "id": "si-5",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "si-5",
+        "group": "si",
+        "id": "si-5.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "ac-1",
+        "group": "ac",
+        "id": "ac-1",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "pe-12",
+        "group": "pe",
+        "id": "pe-12",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pe-12",
+        "group": "pe",
+        "id": "pe-12.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "pm-21",
+        "group": "pm",
+        "id": "pm-21",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-20",
+        "group": "sc",
+        "id": "sc-20",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-20",
+        "group": "sc",
+        "id": "sc-20.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-6",
+        "group": "si",
+        "id": "si-6",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "si-6",
+        "group": "si",
+        "id": "si-6.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "si-6",
+        "group": "si",
+        "id": "si-6.3",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17.9",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "ac-17",
+        "group": "ac",
+        "id": "ac-17.10",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "pe-1",
+        "group": "pe",
+        "id": "pe-1",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "pm-28",
+        "group": "pm",
+        "id": "pm-28",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-22",
+        "group": "sc",
+        "id": "sc-22",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "si-3",
+        "group": "si",
+        "id": "si-3",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-3",
+        "group": "si",
+        "id": "si-3.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-3",
+        "group": "si",
+        "id": "si-3.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-3",
+        "group": "si",
+        "id": "si-3.8",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "si-3",
+        "group": "si",
+        "id": "si-3.10",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "pm-25",
+        "group": "pm",
+        "id": "pm-25",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-11",
+        "group": "sc",
+        "id": "sc-11",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-11",
+        "group": "sc",
+        "id": "sc-11.1",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "pm-11",
+        "group": "pm",
+        "id": "pm-11",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-15",
+        "group": "sc",
+        "id": "sc-15",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-15",
+        "group": "sc",
+        "id": "sc-15.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-15",
+        "group": "sc",
+        "id": "sc-15.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-15",
+        "group": "sc",
+        "id": "sc-15.4",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "pm-15",
+        "group": "pm",
+        "id": "pm-15",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-48",
+        "group": "sc",
+        "id": "sc-48",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-48",
+        "group": "sc",
+        "id": "sc-48.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-12",
+        "group": "sc",
+        "id": "sc-12",
+        "kind": "base",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-12",
+        "group": "sc",
+        "id": "sc-12.1",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-12",
+        "group": "sc",
+        "id": "sc-12.2",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-12",
+        "group": "sc",
+        "id": "sc-12.3",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-12",
+        "group": "sc",
+        "id": "sc-12.6",
+        "kind": "enhancement",
+        "split": "evaluation"
+      },
+      {
+        "family": "sc-21",
+        "group": "sc",
+        "id": "sc-21",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "sc-4",
+        "group": "sc",
+        "id": "sc-4",
+        "kind": "base",
+        "split": "test"
+      },
+      {
+        "family": "sc-4",
+        "group": "sc",
+        "id": "sc-4.2",
+        "kind": "enhancement",
+        "split": "test"
+      },
+      {
+        "family": "sc-25",
+        "group": "sc",
+        "id": "sc-25",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "sc-42",
+        "group": "sc",
+        "id": "sc-42",
+        "kind": "base",
+        "split": "calibration"
+      },
+      {
+        "family": "sc-42",
+        "group": "sc",
+        "id": "sc-42.1",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sc-42",
+        "group": "sc",
+        "id": "sc-42.2",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sc-42",
+        "group": "sc",
+        "id": "sc-42.4",
+        "kind": "enhancement",
+        "split": "calibration"
+      },
+      {
+        "family": "sc-42",
+        "group": "sc",
+        "id": "sc-42.5",
+        "kind": "enhancement",
+        "split": "calibration"
+      }
+    ]
+  },
+  "seed": "d1d5007477fd88b521409b6a4c89a7e816e5ef5c175d392b47afffe7f84a88e0",
+  "seed_basis": "sha256 of the three pinned source hashes in sources.json, in file-name order",
+  "selection_rules": {
+    "assisted_pairs": {
+      "count": 30,
+      "draw_name": "assisted_pairs",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "population": "primary packets of the split that received a blind ruling, identified by packet id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed"
+    },
+    "double_ruled": {
+      "draw_name": "double_ruled",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "population": "primary packets of the split, identified by their packet id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed",
+      "share": 0.2
+    },
+    "missed_link": {
+      "count": 5,
+      "draw_name": "missed_link",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "note": "r = 5 for every unit; pool 98 when every top-k candidate is a distinct subcategory",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "per_unit": true,
+      "population": "per unit: the hub entries outside the unit's retrieved top-k, identified by subcategory id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed"
+    },
+    "ss_audit": {
+      "count": 30,
+      "draw_name": "ss_audit",
+      "method": "Python random.Random(seed).sample(ordered, count): without replacement, the standard library's sampler",
+      "note": "all of them when fewer exist; the pool size is recorded",
+      "ordering": "eligible identities sorted as strings, ascending, before any draw",
+      "per_card": true,
+      "population": "per card: outputs the card refused or flagged in the split, identified by output id",
+      "rounding": "count = int(round(share * population)) with Python's round (half to even); at least 1 when the population is non-empty",
+      "seed_derivation": "sha256(protocol seed + ':' + draw name + ':' + split name), hex, as the Random seed"
+    }
+  },
+  "sources": {
+    "csf2_core_cprt.json": "de36759d2f3f70a0f28ab9a95505259e568467923295a13d510a068939773e5a",
+    "csf2_informative_references.xlsx": "509cf571c4f34a20f6738f43a7204e8d3a16ff1ebe88ecc9c276498c2400ee09",
+    "sp800-53r5_catalog.json": "64ca6b4161de51ab6af098a7d101d326f14c95e1abf721396cd8a049e8115eeb"
+  },
+  "split": {
+    "rule": "whole families; a base control and its enhancements always share a split",
+    "shares": {
+      "calibration": 0.2,
+      "evaluation": 0.4,
+      "test": 0.4
+    },
+    "units_by_split": {
+      "calibration": 91,
+      "evaluation": 160,
+      "test": 106
+    }
+  },
+  "ss_audit": {
+    "cards": [
+      "SS-scope",
+      "SS-retrieval"
+    ],
+    "per_card": 30,
+    "pooled_per_split": true,
+    "selection": "selection_rules.ss_audit"
+  },
+  "supersedes": {
+    "changed": [
+      "roles.council.models",
+      "budget",
+      "routing_note",
+      "supersedes"
+    ],
+    "sha256": "34523becd7a3ae762f966ca24e6057ea2e9f87928388111ae020c79de9c97687",
+    "why": "the council's Mistral voice (mistral-large-4-0 reasoned through the 250-token council ceiling and answered nothing); calibration uses no council voice, so its frozen configuration stands"
+  },
+  "unit": "active SP 800-53 Rev. 5 control or enhancement"
+}

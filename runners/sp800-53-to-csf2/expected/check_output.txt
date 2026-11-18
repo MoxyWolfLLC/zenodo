@@ -1,0 +1,47 @@
+card             result              
+-------------------------------------
+I1               PASS                
+I3               PASS                
+I4               PASS                
+SS-scope         PASS                
+I5-otherwise     PASS                
+A1               PASS                
+A2-otherwise     PASS                
+SS-retrieval     PASS                
+R2-otherwise     PASS                
+E1               present_unreachable 
+E2               PASS                
+E3               PASS                
+E4-otherwise     PASS                
+K1               PASS                
+K2               PASS                
+K3-otherwise     PASS                
+T1               PASS                
+T2               PASS                
+T2-gated         PASS                
+T3               PASS                
+T3-gated         PASS                
+T4               PASS                
+T5-otherwise     PASS                
+H1               PASS                
+H2               PASS                
+H3               PASS                
+H4-otherwise     PASS                
+-------------------------------------
+26 PASS, 1 present_unreachable (E1: route is retrieval only, H_max = 0), no failures
+
+scenario (GOAL.md)                                                                           result  
+-----------------------------------------------------------------------------------------------------
+conformance diff against Appendix C, zero deviations or each named as a fork                 PASS    
+every decision replays under its revision with the network disabled, call counter zero       PASS    
+r3's predeclared change re-asks exactly the expected invalidations                           PASS    
+set r1 with every gate closed writes nothing; a level opens only on the Wilson bound over 25 PASS    
+the frozen protocol's hash equals the pre-call record; every family in one split             PASS    
+no primary gold packet contains a proposal, vote, confidence, route or prediction            PASS    
+the budget guard refuses a call past the allowance and records the refusal                   PASS    
+never: a primary gold label from a packet containing proposals or votes                      PASS    
+never: a stored vote whose provider equals the proposer's                                    PASS    
+never: a ledger write by a model output or a council ruling rather than a card               PASS    
+never: an Appendix C card, lane or store changed to make the domain fit                      PASS    
+-----------------------------------------------------------------------------------------------------
+11 of 11 scenarios PASS on fixtures

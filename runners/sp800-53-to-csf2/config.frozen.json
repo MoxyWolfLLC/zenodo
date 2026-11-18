@@ -1,0 +1,33 @@
+{
+ "c_min": 0.7,
+ "chosen_revision": "cal-1",
+ "engine": "54dae60c336a1789",
+ "frozen": "2026-11-17T16:44:30Z",
+ "k": 8,
+ "prompt_versions": {
+  "extraction": "extract-v1",
+  "proposal": "propose-v1",
+  "vote": "vote-v1"
+ },
+ "protocol_sha256": "34523becd7a3ae762f966ca24e6057ea2e9f87928388111ae020c79de9c97687",
+ "revisions": [
+  "cal-1",
+  "cal-2",
+  "cal-3",
+  "cal-4",
+  "cal-5",
+  "cal-6"
+ ],
+ "score": {
+  "f1": 0.3282051282051282,
+  "fn": 79,
+  "fp": 52,
+  "inherited": 51,
+  "precision": 0.38095238095238093,
+  "recall": 0.2882882882882883,
+  "scored_units": 66,
+  "tp": 32,
+  "unscored_units": 25
+ },
+ "sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359"
+}

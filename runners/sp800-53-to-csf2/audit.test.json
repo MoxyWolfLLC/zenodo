@@ -1,0 +1,54 @@
+{
+ "audited": "2026-11-18T00:28:10Z",
+ "cards": {
+  "SS-retrieval": {
+   "drawn": 0,
+   "error_rate": null,
+   "errors": 0,
+   "n": 0,
+   "pool": 0,
+   "rows": [],
+   "seed": "8fe955035016672f94fa5e454112dc633575c4a9f90c244c0fdacd0d18e39a66",
+   "unresolved": 0
+  },
+  "SS-scope": {
+   "drawn": 1,
+   "error_rate": 0.0,
+   "errors": 0,
+   "n": 1,
+   "pool": 1,
+   "rows": [
+    {
+     "decision_id": "df9903509387c889",
+     "packet_sha256": "9a5a0bed8471b237eb88fea8ef4478a2916636c9da0036b74ab2be62f0995443",
+     "ruling": "correct",
+     "unit_id": "ca-2.2",
+     "votes": [
+      {
+       "model": "anthropic/claude-haiku-5.5",
+       "ruling": "error"
+      },
+      {
+       "model": "google/gemini-2.5-flash-lite",
+       "ruling": "correct"
+      },
+      {
+       "model": "mistralai/mistral-large-2512",
+       "ruling": "correct"
+      }
+     ]
+    }
+   ],
+   "seed": "8fe955035016672f94fa5e454112dc633575c4a9f90c244c0fdacd0d18e39a66",
+   "unresolved": 0
+  }
+ },
+ "cost_usd": "0.0003875",
+ "per_card": 30,
+ "revision": "r2",
+ "split": "test",
+ "tally": {
+  "asked": 3,
+  "reused": 0
+ }
+}

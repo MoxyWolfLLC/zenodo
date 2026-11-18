@@ -1,0 +1,49 @@
+{
+ "asked": 0,
+ "equal": true,
+ "live_decisions": 2955,
+ "matched": 2955,
+ "not_replayed": {
+  "calibration_revisions": "not published; an incomplete extraction attempt is not stored, so a walk that once took a later attempt is not reproducible",
+  "units_with_a_later_extraction_attempt": [
+   {
+    "attempt": 1,
+    "created": "2026-11-17T16:17:50Z",
+    "unit_release": "ir-8@64ca6b4161de"
+   }
+  ]
+ },
+ "outbound_attempts": 0,
+ "reused": 6618,
+ "revisions": [
+  {
+   "live": 1273,
+   "matched": 1273,
+   "mismatched_ids": [],
+   "replayed": 1273,
+   "revision": "r2",
+   "split": "evaluation"
+  },
+  {
+   "live": 841,
+   "matched": 841,
+   "mismatched_ids": [],
+   "replayed": 841,
+   "revision": "r2",
+   "split": "test"
+  },
+  {
+   "live": 841,
+   "matched": 841,
+   "mismatched_ids": [],
+   "replayed": 841,
+   "revision": "r3",
+   "split": "test"
+  }
+ ],
+ "seconds": 1.0,
+ "status": "equal",
+ "store": "run.sqlite",
+ "ts": "2026-11-18T02:12:31Z",
+ "violation": null
+}

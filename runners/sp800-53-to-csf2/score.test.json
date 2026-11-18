@@ -1,0 +1,212 @@
+{
+ "anchoring": {
+  "agree_assisted": 0.7857,
+  "agree_blind": 0.7857,
+  "blind_wins_among_discordant": 1,
+  "difference": 0.0,
+  "discordant": 2,
+  "pairs": 30,
+  "pairs_drawn": 30,
+  "pairs_resolved": 28,
+  "pairs_unresolved": 2,
+  "seed": "b51e27788c72af4f7eb0120f07f7786ad6d7a4d056226bc8e384c7c8545c1f6f",
+  "wilson_95": [
+   0.0945,
+   0.9055
+  ]
+ },
+ "automatic_write_rows": [
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "subset_of",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "intersects_with",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "equal",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "superset_of",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "no_relationship",
+   "n": 0,
+   "wilson_lower": 0.0
+  }
+ ],
+ "automatic_writes": 0,
+ "c_min": 0.7,
+ "config_sha256": "a6f9a70f142f6e5efb9de8322d8073b6a04bb7bef3e2b5df4f80eb30657e2359",
+ "council_agreement": {
+  "double_ruled_n": 168,
+  "krippendorff_alpha": 0.920543
+ },
+ "coverage": {
+  "definition": "share of the split's units with at least one proposal the council ruled a true link (a level)",
+  "share": 0.830189,
+  "units": 106,
+  "with_a_true_link": 88
+ },
+ "gold_packets": 840,
+ "missed_links": {
+  "definition": "share of ruled true links the run recorded as no_relationship or never retrieved, over ruled true links (Horvitz-Thompson); reported only when every retrieved pair and every drawn candidate carries a ruling",
+  "draw_n": 530,
+  "draw_unresolved": 3,
+  "estimate": null,
+  "non_retrieved_draw_true_links": 13,
+  "non_retrieved_weight": 19.6,
+  "retrieved_true_links": 220,
+  "retrieved_unresolved": 9,
+  "retrieved_voted_no_relationship_true_links": 4,
+  "withheld": "12 required ruling(s) unresolved (9 retrieved, 3 drawn); the frozen weights admit no non-response adjustment"
+ },
+ "prediction_rows": [
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 1,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "subset_of",
+   "n": 6,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 53,
+   "families_with_multiple_outcomes": 20,
+   "gate_decision": "closed",
+   "gate_open": false,
+   "level": "intersects_with",
+   "n": 93,
+   "wilson_lower": 0.484651
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 9,
+   "gate_decision": "closed",
+   "gate_open": false,
+   "level": "equal",
+   "n": 47,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "superset_of",
+   "n": 1,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 41,
+   "families_with_multiple_outcomes": 11,
+   "gate_decision": "closed",
+   "gate_open": false,
+   "level": "no_relationship",
+   "n": 45,
+   "wilson_lower": 0.816125
+  }
+ ],
+ "predictions": {
+  "pairs": 840,
+  "unresolved_gold": 9,
+  "with_label": 831,
+  "with_prediction": 197
+ },
+ "revision": "r2",
+ "rows": [
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "subset_of",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "intersects_with",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "equal",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "superset_of",
+   "n": 0,
+   "wilson_lower": 0.0
+  },
+  {
+   "correct": 0,
+   "families_with_multiple_outcomes": 0,
+   "gate_decision": "closed_insufficient",
+   "gate_open": false,
+   "level": "no_relationship",
+   "n": 0,
+   "wilson_lower": 0.0
+  }
+ ],
+ "rows_basis": "automatic writes (route WRITE)",
+ "scored": "2026-11-18T00:28:11Z",
+ "sha256": "3fb65cdd4bb7e170c7733fd2d8dfbdeb411f14d564b6d5047dedad278d3a5c05",
+ "split": "test",
+ "ss_audit": {
+  "SS-retrieval": {
+   "error_rate": null,
+   "errors": 0,
+   "n": 0,
+   "pool": 0,
+   "unresolved": 0
+  },
+  "SS-scope": {
+   "error_rate": 0.0,
+   "errors": 0,
+   "n": 1,
+   "pool": 1,
+   "unresolved": 0
+  }
+ }
+}
